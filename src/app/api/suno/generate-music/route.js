@@ -35,7 +35,7 @@ export async function POST(request) {
       title: safeTitle,
       customMode: true,     // use our exact lyrics
       instrumental: false,  // we want vocals
-      model: "V4",          // reliable model
+      model: "V4_5ALL",          // reliable model
       callBackUrl,          // required by API
     };
 
