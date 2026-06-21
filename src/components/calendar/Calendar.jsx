@@ -85,6 +85,7 @@ const Calendar = () => {
     } else {
       // Add new event
       const newEvent = {
+        // eslint-disable-next-line react-hooks/purity
         id: Date.now().toString(),
         title: eventTitle,
         start: eventStartDate,

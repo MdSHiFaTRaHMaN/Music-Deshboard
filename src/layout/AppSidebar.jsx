@@ -42,12 +42,18 @@ const navItems = [
   {
     name: "Forms",
     icon: <ListIcon />,
-    subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
+    subItems: [
+      { name: "Form Elements", path: "/form-elements", pro: false },
+      { name: "Genarate", path: "/genarate", pro: false },
+    ],
   },
   {
-    name: "Tables",
+    name: "Musics",
     icon: <TableIcon />,
-    subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
+    subItems: [
+      { name: "Ordered Musics", path: "/ordered-musics", pro: false },
+      { name: "All Musics", path: "/all-musics", pro: false },
+    ],
   },
   {
     name: "Pages",
@@ -60,26 +66,6 @@ const navItems = [
 ];
 
 const othersItems = [
-  {
-    icon: <PieChartIcon />,
-    name: "Charts",
-    subItems: [
-      { name: "Line Chart", path: "/line-chart", pro: false },
-      { name: "Bar Chart", path: "/bar-chart", pro: false },
-    ],
-  },
-  {
-    icon: <BoxCubeIcon />,
-    name: "UI Elements",
-    subItems: [
-      { name: "Alerts", path: "/alerts", pro: false },
-      { name: "Avatar", path: "/avatars", pro: false },
-      { name: "Badge", path: "/badge", pro: false },
-      { name: "Buttons", path: "/buttons", pro: false },
-      { name: "Images", path: "/images", pro: false },
-      { name: "Videos", path: "/videos", pro: false },
-    ],
-  },
   {
     icon: <PlugInIcon />,
     name: "Authentication",
@@ -237,6 +223,7 @@ const AppSidebar = () => {
 
     // If no submenu item matches, close the open submenu
     if (!submenuMatched) {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       setOpenSubmenu(null);
     }
   }, [pathname, isActive]);
