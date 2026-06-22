@@ -61,7 +61,33 @@ export default function GenerateForm() {
   const [lyricsLoading, setLyricsLoading] = useState(false);
   const [lyricsError, setLyricsError] = useState("");
   const [lyricsVariations, setLyricsVariations] = useState([]);
-  const [selectedLyricsIndex, setSelectedLyricsIndex] = useState(0);
+  const [selectedLyricsIndex, setSelectedLyricsIndex] = useState(null);
+  
+  // Audio finalization states
+  const [isAudioReady, setIsAudioReady] = useState(true);
+  const [backgroundPollingTaskId, setBackgroundPollingTaskId] = useState(null);
+
+  // Background polling for final audioUrl and duration
+  useEffect(() => {
+    if (!backgroundPollingTaskId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/suno/status?taskId=${backgroundPollingTaskId}&type=music`);
+        const data = await res.json();
+        if (data.isFullySaved) {
+          setIsAudioReady(true);
+          setBackgroundPollingTaskId(null);
+          clearInterval(interval);
+        }
+      } catch (err) {
+        console.error("Background polling error:", err);
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [backgroundPollingTaskId]);
+
   const [musicTracks, setMusicTracks] = useState([]);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationError, setGenerationError] = useState("");
@@ -175,6 +201,12 @@ export default function GenerateForm() {
 
         const result = await pollStatus(data.taskId, "music", setGenerationProgress);
         setMusicTracks(result.tracks || []);
+        
+        setIsAudioReady(result.isFullySaved);
+        if (!result.isFullySaved) {
+          setBackgroundPollingTaskId(data.taskId);
+        }
+
         // Auto-advance to Step 8 when done
         setCurrentStep(8);
       } catch (err) {
@@ -219,6 +251,26 @@ export default function GenerateForm() {
       }
       
       setIsSubmitting(true);
+
+      // Wait silently for audio to be fully ready if it isn't already
+      if (!isAudioReady && formData.taskId) {
+        let ready = false;
+        let attempts = 0;
+        while (!ready && attempts < 30) { // max 60 seconds
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          attempts++;
+          try {
+            const res = await fetch(`/api/suno/status?taskId=${formData.taskId}&type=music`);
+            const data = await res.json();
+            if (data.isFullySaved) {
+              ready = true;
+            }
+          } catch (e) {
+            console.error("Silent polling error:", e);
+          }
+        }
+      }
+
       try {
         const res = await fetch("/api/orders", {
           method: "POST",

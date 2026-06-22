@@ -11,9 +11,41 @@ export const dynamic = "force-dynamic";
 export default async function MusicDetailPage({ params }) {
   const { id } = await params;
   await dbConnect();
-  const order = await Order.findById(id).lean();
+  let order = await Order.findById(id).lean();
 
   if (!order) return notFound();
+
+  // Auto-sync missing audioUrls from Suno API
+  const apiKey = process.env.SUNO_API_KEY;
+  if (apiKey && order.taskId && order.musicTracks?.length > 0 && order.musicTracks.some(t => !t.audioUrl || !t.duration)) {
+    try {
+      const response = await fetch(`${process.env.SUNO_API_BASE}/api/v1/generate/record-info?taskId=${order.taskId}`, {
+        headers: { "Authorization": `Bearer ${apiKey}` },
+        cache: "no-store"
+      });
+      const data = await response.json();
+      const sunoData = data?.data?.response?.sunoData;
+      
+      if (sunoData && sunoData.length > 0) {
+        const allTracksReady = sunoData.every(t => t.audioUrl && t.duration);
+        if (allTracksReady) {
+          const updatedTracks = sunoData.map(track => ({
+            id: track.id,
+            title: track.title,
+            audioUrl: track.audioUrl,
+            streamAudioUrl: track.streamAudioUrl,
+            imageUrl: track.imageUrl,
+            duration: track.duration,
+            lyrics: track.prompt,
+          }));
+          await Order.updateOne({ _id: order._id }, { $set: { musicTracks: updatedTracks } });
+          order.musicTracks = updatedTracks; // Update local reference
+        }
+      }
+    } catch (err) {
+      console.error("Auto-sync error on all-musics detail page:", err);
+    }
+  }
 
   const serialized = JSON.parse(JSON.stringify(order));
   const selectedTrack = serialized.musicTracks?.find(t => t.id === serialized.selectedDemo) || serialized.musicTracks?.[0];

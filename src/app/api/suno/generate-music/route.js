@@ -1,11 +1,38 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import Order from "@/models/Order";
-
-const sunoApiBase = process.env.SUNO_API_BASE;
+import { getSettings } from "@/lib/getSettings";
 
 export async function POST(request) {
   try {
+    // ── Security: Origin / Referer check ──
+    const settings = await getSettings();
+    const origin = request.headers.get("origin") || "";
+    const referer = request.headers.get("referer") || "";
+    const allowedOrigins = [
+      settings.shopUrl,                              // e.g. https://mystore.myshopify.com
+      process.env.NEXT_PUBLIC_APP_URL,                // our own app URL
+      "http://localhost:3000",                        // local dev
+      "http://localhost:3001",
+    ].filter(Boolean);
+
+    const isAllowed = allowedOrigins.some(
+      (allowed) => origin.startsWith(allowed) || referer.startsWith(allowed)
+    );
+
+    if (!isAllowed) {
+      return NextResponse.json(
+        { error: "Unauthorized: Request origin not allowed" },
+        { status: 403 }
+      );
+    }
+
+    // ── Use API key from DB (fallback to env) ──
+    const apiKey = settings.sunoApiKey;
+    if (!apiKey) {
+      return NextResponse.json({ error: "SUNO API Key not configured. Please set it in Settings." }, { status: 500 });
+    }
+
     const { lyrics, style, title, formData } = await request.json();
 
     if (!lyrics) {
@@ -13,11 +40,6 @@ export async function POST(request) {
     }
     if (!formData || !formData.email) {
       return NextResponse.json({ error: "Email is required to save the generated order" }, { status: 400 });
-    }
-
-    const apiKey = process.env.SUNO_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "SUNO_API_KEY not configured" }, { status: 500 });
     }
 
     // POST /api/v1/generate — required fields: customMode, instrumental, callBackUrl, model
@@ -41,7 +63,7 @@ export async function POST(request) {
 
     console.log("[generate-music] Sending body:", JSON.stringify(body));
 
-    const response = await fetch(`${sunoApiBase}/api/v1/generate`, {
+    const response = await fetch(`${settings.sunoApiBase}/api/v1/generate`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -91,7 +91,9 @@ const AppSidebar = () => {
               >
                 {nav.icon}
               </span>
-              <span className={`menu-item-text text-orange-500`}>{nav.name}</span>
+              {(isExpanded || isHovered || isMobileOpen) && (
+                <span className={`menu-item-text text-orange-500`}>{nav.name}</span>
+              )}
               {(isExpanded || isHovered || isMobileOpen) && (
                 <FaChevronDown
                   className={`ml-auto w-3 h-3 transition-transform duration-200 text-orange-500  ${openSubmenu?.type === menuType &&
