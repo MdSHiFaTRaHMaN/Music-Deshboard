@@ -1,6 +1,6 @@
 import GridShape from "@/components/common/GridShape";
 import ThemeTogglerTwo from "@/components/common/ThemeTogglerTwo";
-
+import Logo from "../../../../public/images/logo/own-music-logo.png";
 import { ThemeProvider } from "@/context/ThemeContext";
 import Image from "next/image";
 import Link from "next/link";
@@ -17,11 +17,12 @@ export default function AuthLayout({ children }) {
               {/* <!-- ===== Common Grid Shape Start ===== --> */}
               <GridShape />
               <div className="flex flex-col items-center max-w-xs">
+                
                 <Link href="/" className="block mb-4">
                   <Image
                     width={231}
                     height={48}
-                    src="./images/logo/auth-logo.svg"
+                    src={Logo}
                     alt="Logo"
                   />
                 </Link>

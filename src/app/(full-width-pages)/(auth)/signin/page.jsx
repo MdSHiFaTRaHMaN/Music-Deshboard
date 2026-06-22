@@ -1,8 +1,8 @@
 import SignInForm from "@/components/auth/SignInForm";
 
 export const metadata = {
-  title: "Next.js SignIn Page | TailAdmin - Next.js Dashboard Template",
-  description: "This is Next.js Signin Page TailAdmin Dashboard Template",
+  title: "Dashboard | My Own Music",
+  description: "This is my own music dashboard, a modern admin template for music management. Sign in to access your personalized music dashboard and manage your music collection with ease.",
 };
 
 export default function SignIn() {

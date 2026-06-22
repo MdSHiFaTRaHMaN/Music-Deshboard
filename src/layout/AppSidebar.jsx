@@ -7,71 +7,67 @@ import { useSidebar } from "../context/SidebarContext";
 import { BiPurchaseTag } from "react-icons/bi";
 import { LuUsersRound } from "react-icons/lu";
 import {
-  BoxCubeIcon,
-  CalenderIcon,
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
-  ListIcon,
-  PageIcon,
-  PieChartIcon,
-  PlugInIcon,
-  TableIcon,
-  UserCircleIcon,
-  OrderIcon
 } from "../icons/index";
 
 import logoImage from "../../public/images/logo/own-music-logo.png";
+import { FaChevronDown, FaRegCircleUser } from "react-icons/fa6";
+import { MdFormatListBulletedAdd } from "react-icons/md";
+import { RiMusicAiLine } from "react-icons/ri";
+import { FiUsers } from "react-icons/fi";
 
 const navItems = [
   {
     icon: <GridIcon />,
-    name: "Dashboard",
+    name: <span className="text-orange-500">Dashboard</span>,
     path: "/",
   },
   {
-    icon: <BiPurchaseTag className="text-orange-500 text-2xl" />,
-    name: "Orders",
+    icon: <BiPurchaseTag className="text-orange-500 text-xl" />,
+    name: <span className="text-orange-500">Orders</span>,
     path: "/orders",
   },
   {
-    icon: <UserCircleIcon />,
-    name: "User Profile",
+    icon: <FaRegCircleUser className="text-orange-500 text-xl"/>,
+    name: <span className="text-orange-500">User Profile</span>,
     path: "/profile",
   },
 
   {
-    name: "Forms",
-    icon: <ListIcon />,
+    name: <span className="text-orange-500">Forms</span>,
+    icon: <MdFormatListBulletedAdd className="text-orange-500 text-xl"/>,
     subItems: [
-      { name: "Form Elements", path: "/form-elements", pro: false },
-      { name: "Genarate", path: "/genarate", pro: false },
+      { name: <span className="text-orange-500">Form Elements</span>, path: "/form-elements", pro: false },
+      { name: <span className="text-orange-500">Generate</span>, path: "/genarate", pro: false },
     ],
   },
   {
-    name: "Musics",
-    icon: <TableIcon />,
+    name: <span className="text-orange-500">Musics</span>,
+    icon: <RiMusicAiLine className="text-orange-500 text-xl"/>,
     subItems: [
-      { name: "Ordered Musics", path: "/ordered-musics", pro: false },
-      { name: "All Musics", path: "/all-musics", pro: false },
+      { name: <span className="text-orange-500">Ordered Musics</span>, path: "/ordered-musics", pro: false },
+      { name: <span className="text-orange-500">All Musics</span>, path: "/all-musics", pro: false },
     ],
   },
-  {
-    name: "Pages",
-    icon: <PageIcon />,
-    subItems: [
-      { name: "Blank Page", path: "/blank", pro: false },
-      { name: "404 Error", path: "/error-404", pro: false },
-    ],
-  },
+  // {
+  //   name: "Pages",
+  //   icon: <PageIcon />,
+  //   subItems: [
+  //     { name: "Blank Page", path: "/blank", pro: false },
+  //     { name: "404 Error", path: "/error-404", pro: false },
+  //   ],
+  // },
 ];
 
 const othersItems = [
   {
-    icon: <LuUsersRound />,
-    name: "Staffs",
+    icon: <FiUsers className="text-orange-500 text-xl"/>,
+    name: <span className="text-orange-500">Staff Management</span>,
     subItems: [
-      { name: "Create Staff", path: "/create-staff", pro: false },
+      { name: <span className="text-orange-500">All Staff</span>, path: "/all-staff", pro: false },
+      { name: <span className="text-orange-500">Create Staff</span>, path: "/create-staff", pro: false },
     ],
   },
 ];
@@ -107,8 +103,8 @@ const AppSidebar = () => {
                 <span className={`menu-item-text`}>{nav.name}</span>
               )}
               {(isExpanded || isHovered || isMobileOpen) && (
-                <ChevronDownIcon
-                  className={`ml-auto w-5 h-5 transition-transform duration-200  ${openSubmenu?.type === menuType &&
+                <FaChevronDown 
+                  className={`ml-auto w-3 h-3 transition-transform duration-200 text-orange-500  ${openSubmenu?.type === menuType &&
                     openSubmenu?.index === index
                     ? "rotate-180 text-orange-500"
                     : ""
