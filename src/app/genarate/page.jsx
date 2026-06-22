@@ -13,19 +13,34 @@ export default function GeneratePage() {
                 // 1. Fetch configured shopUrl from settings
                 const res = await fetch("/api/settings");
                 const settings = await res.json();
-                const shopUrl = settings.shopUrl?.toLowerCase().trim() || "";
+                const shopUrl = settings.shopUrl?.trim() || "";
+                const shopHost = shopUrl ? new URL(shopUrl).host : "";
 
-                const hostname = window.location.hostname;
-                const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
-                
-                // Allow direct visits ONLY on localhost for development
+                const currentHost = window.location.host;
+                const isLocalhost = currentHost === "localhost:3000" || currentHost === "127.0.0.1:3000" || currentHost === "localhost:3001" || currentHost === "127.0.0.1:3001";
+
+                // Allow direct access on localhost for development
                 if (isLocalhost) {
                     setIsAuthorized(true);
                     setLoading(false);
                     return;
                 }
 
-                // 2. Prevent direct visits in production
+                // 2. If we have a matching Shopify referrer, allow even without iframe
+                if (document.referrer && shopHost) {
+                    try {
+                        const refHost = new URL(document.referrer).host;
+                        if (refHost === shopHost) {
+                            setIsAuthorized(true);
+                            setLoading(false);
+                            return;
+                        }
+                    } catch (e) {
+                        // ignore parsing errors, fallback to string check below
+                    }
+                }
+
+                // 3. Must be inside an iframe for other cases
                 const isIframed = window.top !== window.self;
                 if (!isIframed) {
                     setIsAuthorized(false);
@@ -33,32 +48,35 @@ export default function GeneratePage() {
                     return;
                 }
 
-                // 3. Verify parent window origin using document.referrer if available
-                // Note: Modern browsers restrict document.referrer to origin only (e.g. https://mystore.myshopify.com/)
-                if (document.referrer && shopUrl) {
-                    const cleanShopUrl = shopUrl.replace(/\/+$/, ""); // remove trailing slash
-                    if (document.referrer.toLowerCase().startsWith(cleanShopUrl)) {
-                        setIsAuthorized(true);
-                    } else {
-                        console.warn("Unauthorized iframe origin:", document.referrer);
-                        setIsAuthorized(false);
+                // 3. Verify the parent origin matches stored shop host
+                if (document.referrer && shopHost) {
+                    try {
+                        const refHost = new URL(document.referrer).host;
+                        if (refHost === shopHost) {
+                            setIsAuthorized(true);
+                        } else {
+                            console.warn("Unauthorized iframe origin:", document.referrer);
+                            setIsAuthorized(false);
+                        }
+                    } catch (e) {
+                        // If parsing fails, fall back to simple string check
+                        if (document.referrer.toLowerCase().startsWith(shopUrl.toLowerCase())) {
+                            setIsAuthorized(true);
+                        } else {
+                            setIsAuthorized(false);
+                        }
                     }
                 } else {
-                    // Fallback: If document.referrer is hidden but it's iframed, we rely on the API origin checks
-                    // which might be spoofable, but it's the best we can do if cross-origin referrer is completely blocked.
-                    // Usually, document.referrer will at least show the base origin of the parent frame.
-                    setIsAuthorized(true); 
+                    // If no referrer info, still allow if we are iframed (extra layer via server check)
+                    setIsAuthorized(true);
                 }
-
             } catch (error) {
                 console.error("Security check failed:", error);
-                // Fail secure
                 setIsAuthorized(false);
             } finally {
                 setLoading(false);
             }
         };
-
         checkAccess();
     }, []);
 

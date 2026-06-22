@@ -7,18 +7,27 @@ export async function POST(request) {
   try {
     // ── Security: Origin / Referer check ──
     const settings = await getSettings();
-    const origin = request.headers.get("origin") || "";
-    const referer = request.headers.get("referer") || "";
+    const originHeader = request.headers.get("origin") || "";
+    const refererHeader = request.headers.get("referer") || "";
     const allowedOrigins = [
-      settings.shopUrl,                              // e.g. https://mystore.myshopify.com
-      process.env.NEXT_PUBLIC_APP_URL,                // our own app URL
-      "http://localhost:3000",                        // local dev
+      settings.shopUrl,
+      process.env.NEXT_PUBLIC_APP_URL,
+      "http://localhost:3000",
       "http://localhost:3001",
     ].filter(Boolean);
 
-    const isAllowed = allowedOrigins.some(
-      (allowed) => origin.startsWith(allowed) || referer.startsWith(allowed)
-    );
+    const isAllowed = allowedOrigins.some((allowed) => {
+      try {
+        const allowedUrl = new URL(allowed);
+        const originUrl = originHeader ? new URL(originHeader) : null;
+        const refererUrl = refererHeader ? new URL(refererHeader) : null;
+        const hostMatch = (url) => url && url.host === allowedUrl.host;
+        return hostMatch(originUrl) || hostMatch(refererUrl);
+      } catch (e) {
+        // Fallback to simple startsWith if parsing fails
+        return originHeader.startsWith(allowed) || refererHeader.startsWith(allowed);
+      }
+    });
 
     if (!isAllowed) {
       return NextResponse.json(
