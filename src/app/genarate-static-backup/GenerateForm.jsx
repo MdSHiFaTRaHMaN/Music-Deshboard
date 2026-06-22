@@ -1,7 +1,39 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useToast } from "@/components/ui/toast/Toast";
+
+const occasions = [
+  "Love", "Father's Day", "Mother's Day", "Birthday", 
+  "Anniversary", "Wedding", "Birth", "Retirement", 
+  "Thank You", "Farewell", "Graduation", "Other"
+];
+
+const genres = [
+  "Pop", "Acoustic", "Rock", "Country", "Jazz", 
+  "R&B/Soul", "EDM", "Hip-Hop", "Classical", "Latin"
+];
+
+const voices = ["Male", "Female", "Duet"];
+const moods = ["Romantic", "Energetic", "Calm", "Inspiring", "Festive", "Emotional", "Powerful"];
+
+const packages = [
+  {
+    id: "muziekbox", title: "Muziekbox", price: "€59.95", tagline: "Perfect as a gift!",
+    features: ["Beautiful physical music box", "High quality audio", "Fast shipping"],
+    image: "https://placehold.co/400x400/f8f9fa/101828?text=Muziekbox"
+  },
+  {
+    id: "digitaal", title: "Digitaal Liedje", price: "€29.95", tagline: "Ideal for a quick surprise",
+    features: ["Digital MP3 download", "Custom lyrics included", "Direct in your inbox"],
+    image: "https://placehold.co/400x400/f8f9fa/101828?text=Digitaal+Liedje"
+  },
+  {
+    id: "video", title: "Video + Liedje", price: "€69.95", tagline: "New!",
+    features: ["Personalized video", "Digital MP3 included", "Perfect for sharing"],
+    image: "https://placehold.co/400x400/f8f9fa/101828?text=Video+%2B+Liedje"
+  }
+];
 
 // Failed statuses from the real SunoAPI
 const LYRICS_FAILED_STATUSES = ["CREATE_TASK_FAILED", "GENERATE_LYRICS_FAILED", "CALLBACK_EXCEPTION", "SENSITIVE_WORD_ERROR"];
@@ -61,68 +93,11 @@ export default function GenerateForm() {
   const [lyricsLoading, setLyricsLoading] = useState(false);
   const [lyricsError, setLyricsError] = useState("");
   const [lyricsVariations, setLyricsVariations] = useState([]);
-  const [selectedLyricsIndex, setSelectedLyricsIndex] = useState(null);
-  
-  // Audio finalization states
-  const [isAudioReady, setIsAudioReady] = useState(true);
-  const [backgroundPollingTaskId, setBackgroundPollingTaskId] = useState(null);
-
-  // Background polling for final audioUrl and duration
-  useEffect(() => {
-    if (!backgroundPollingTaskId) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/suno/status?taskId=${backgroundPollingTaskId}&type=music`);
-        const data = await res.json();
-        if (data.isFullySaved) {
-          setIsAudioReady(true);
-          setBackgroundPollingTaskId(null);
-          clearInterval(interval);
-        }
-      } catch (err) {
-        console.error("Background polling error:", err);
-      }
-    }, 5000); // Check every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [backgroundPollingTaskId]);
-
+  const [selectedLyricsIndex, setSelectedLyricsIndex] = useState(0);
   const [musicTracks, setMusicTracks] = useState([]);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationError, setGenerationError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Dynamic Options State
-  const [optionsLoading, setOptionsLoading] = useState(true);
-  const [options, setOptions] = useState({
-    occasions: [],
-    genres: [],
-    voices: [],
-    moods: [],
-    packages: [],
-  });
-
-  useEffect(() => {
-    const fetchOptions = async () => {
-      try {
-        const res = await fetch("/api/form-options");
-        const json = await res.json();
-        if (json.success && json.data) {
-          setOptions(json.data);
-          // Set default package if available
-          if (json.data.packages && json.data.packages.length > 0) {
-            setFormData(prev => ({ ...prev, selectedPackage: json.data.packages[0].id }));
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load options", err);
-      } finally {
-        setOptionsLoading(false);
-      }
-    };
-    fetchOptions();
-  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -201,12 +176,6 @@ export default function GenerateForm() {
 
         const result = await pollStatus(data.taskId, "music", setGenerationProgress);
         setMusicTracks(result.tracks || []);
-        
-        setIsAudioReady(result.isFullySaved);
-        if (!result.isFullySaved) {
-          setBackgroundPollingTaskId(data.taskId);
-        }
-
         // Auto-advance to Step 8 when done
         setCurrentStep(8);
       } catch (err) {
@@ -251,26 +220,6 @@ export default function GenerateForm() {
       }
       
       setIsSubmitting(true);
-
-      // Wait silently for audio to be fully ready if it isn't already
-      if (!isAudioReady && formData.taskId) {
-        let ready = false;
-        let attempts = 0;
-        while (!ready && attempts < 30) { // max 60 seconds
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          attempts++;
-          try {
-            const res = await fetch(`/api/suno/status?taskId=${formData.taskId}&type=music`);
-            const data = await res.json();
-            if (data.isFullySaved) {
-              ready = true;
-            }
-          } catch (e) {
-            console.error("Silent polling error:", e);
-          }
-        }
-      }
-
       try {
         const res = await fetch("/api/orders", {
           method: "POST",
@@ -328,16 +277,12 @@ export default function GenerateForm() {
               <p className="mt-2 text-gray-500 dark:text-gray-400">Select the event or reason for your custom song.</p>
             </div>
             <div className="flex flex-wrap justify-center gap-3 pt-4">
-              {optionsLoading ? (
-                <div className="text-gray-500">Loading occasions...</div>
-              ) : (
-                options.occasions.map((occ) => (
-                  <button key={occ} onClick={() => handlePillSelect("occasion", occ)}
-                    className={`rounded-full border px-6 py-2.5 text-sm font-medium transition-all duration-200 ${formData.occasion === occ ? "border-brand-500 bg-brand-50 text-brand-500 dark:bg-brand-500/10 dark:text-brand-400" : "border-gray-200 text-gray-600 hover:border-brand-300 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:bg-white/5"}`}>
-                    {occ}
-                  </button>
-                ))
-              )}
+              {occasions.map((occ) => (
+                <button key={occ} onClick={() => handlePillSelect("occasion", occ)}
+                  className={`rounded-full border px-6 py-2.5 text-sm font-medium transition-all duration-200 ${formData.occasion === occ ? "border-brand-500 bg-brand-50 text-brand-500 dark:bg-brand-500/10 dark:text-brand-400" : "border-gray-200 text-gray-600 hover:border-brand-300 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:bg-white/5"}`}>
+                  {occ}
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -510,27 +455,23 @@ export default function GenerateForm() {
               <p className="mt-2 text-gray-500 dark:text-gray-400">Pick the genre, voice, and mood for your song.</p>
             </div>
             <div className="space-y-6">
-              {optionsLoading ? (
-                <div className="text-gray-500 text-center">Loading style options...</div>
-              ) : (
-                [
-                  { label: "Genre", field: "genre", optionsList: options.genres },
-                  { label: "Voice", field: "voice", optionsList: options.voices },
-                  { label: "Mood", field: "mood", optionsList: options.moods },
-                ].map(({ label, field, optionsList }) => (
-                  <div key={field}>
-                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{label}</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {optionsList.map((opt) => (
-                        <button key={opt} onClick={() => handlePillSelect(field, opt)}
-                          className={`rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 ${formData[field] === opt ? "border-brand-500 bg-brand-50 text-brand-500 dark:bg-brand-500/10 dark:text-brand-400" : "border-gray-200 text-gray-600 hover:border-brand-300 dark:border-gray-800 dark:text-gray-300"}`}>
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
+              {[
+                { label: "Genre", field: "genre", options: genres },
+                { label: "Voice", field: "voice", options: voices },
+                { label: "Mood", field: "mood", options: moods },
+              ].map(({ label, field, options }) => (
+                <div key={field}>
+                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{label}</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {options.map((opt) => (
+                      <button key={opt} onClick={() => handlePillSelect(field, opt)}
+                        className={`rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 ${formData[field] === opt ? "border-brand-500 bg-brand-50 text-brand-500 dark:bg-brand-500/10 dark:text-brand-400" : "border-gray-200 text-gray-600 hover:border-brand-300 dark:border-gray-800 dark:text-gray-300"}`}>
+                        {opt}
+                      </button>
+                    ))}
                   </div>
-                ))
-              )}
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -672,31 +613,27 @@ export default function GenerateForm() {
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white/90 sm:text-3xl">Choose Your Package</h2>
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-              {optionsLoading ? (
-                <div className="text-gray-500 text-center col-span-3">Loading packages...</div>
-              ) : (
-                options.packages.map((pkg) => (
-                  <div key={pkg.id} onClick={() => handlePillSelect("selectedPackage", pkg.id)}
-                    className={`relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border transition-all duration-300 hover:shadow-theme-md ${formData.selectedPackage === pkg.id ? "border-brand-500 bg-brand-50/50 shadow-theme-md dark:border-brand-400 dark:bg-brand-500/5" : "border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-white/[0.02]"}`}>
-                    {pkg.tagline && (
-                      <div className="absolute top-0 left-1/2 flex w-full -translate-x-1/2 justify-center">
-                        <span className="rounded-b-lg bg-brand-500 px-4 py-1 text-xs font-semibold tracking-wider text-white shadow-sm">{pkg.tagline}</span>
-                      </div>
-                    )}
-                    <div className="flex flex-col items-center p-6 pt-10">
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">{pkg.title}</h3>
-                      <div className="mt-2 text-3xl font-extrabold text-brand-500">{pkg.price}</div>
-                      <div className="mt-4"><img src={pkg.image} alt={pkg.title} className="h-40 w-40 rounded-xl object-cover shadow-sm" /></div>
-                      <div className="mt-6 w-full space-y-3">
-                        <div className="rounded-lg bg-white p-3 text-center text-sm font-medium text-gray-700 shadow-sm dark:bg-gray-800 dark:text-gray-300">📦 What&apos;s included?</div>
-                        <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                          {pkg.features.map((f, i) => <li key={i} className="flex items-center gap-2"><span className="text-brand-500">✓</span> {f}</li>)}
-                        </ul>
-                      </div>
+              {packages.map((pkg) => (
+                <div key={pkg.id} onClick={() => handlePillSelect("selectedPackage", pkg.id)}
+                  className={`relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border transition-all duration-300 hover:shadow-theme-md ${formData.selectedPackage === pkg.id ? "border-brand-500 bg-brand-50/50 shadow-theme-md dark:border-brand-400 dark:bg-brand-500/5" : "border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-white/[0.02]"}`}>
+                  {pkg.tagline && (
+                    <div className="absolute top-0 left-1/2 flex w-full -translate-x-1/2 justify-center">
+                      <span className="rounded-b-lg bg-brand-500 px-4 py-1 text-xs font-semibold tracking-wider text-white shadow-sm">{pkg.tagline}</span>
+                    </div>
+                  )}
+                  <div className="flex flex-col items-center p-6 pt-10">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">{pkg.title}</h3>
+                    <div className="mt-2 text-3xl font-extrabold text-brand-500">{pkg.price}</div>
+                    <div className="mt-4"><img src={pkg.image} alt={pkg.title} className="h-40 w-40 rounded-xl object-cover shadow-sm" /></div>
+                    <div className="mt-6 w-full space-y-3">
+                      <div className="rounded-lg bg-white p-3 text-center text-sm font-medium text-gray-700 shadow-sm dark:bg-gray-800 dark:text-gray-300">📦 What&apos;s included?</div>
+                      <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                        {pkg.features.map((f, i) => <li key={i} className="flex items-center gap-2"><span className="text-brand-500">✓</span> {f}</li>)}
+                      </ul>
                     </div>
                   </div>
-                ))
-              )}
+                </div>
+              ))}
             </div>
           </div>
         )}

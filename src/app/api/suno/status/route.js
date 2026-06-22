@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import Order from "@/models/Order";
-
-// Correct base URL from official docs
-const sunoApiBase = process.env.SUNO_API_BASE;
+import { getSettings } from "@/lib/getSettings";
 
 // Poll endpoint for both lyrics and music task status
 export async function GET(request) {
@@ -16,16 +14,18 @@ export async function GET(request) {
       return NextResponse.json({ error: "taskId is required" }, { status: 400 });
     }
 
-    const apiKey = process.env.SUNO_API_KEY;
+    // ── Use API key from DB (fallback to env) ──
+    const settings = await getSettings();
+    const apiKey = settings.sunoApiKey;
     if (!apiKey) {
-      return NextResponse.json({ error: "SUNO_API_KEY not configured" }, { status: 500 });
+      return NextResponse.json({ error: "SUNO API Key not configured. Please set it in Settings." }, { status: 500 });
     }
 
     // Lyrics: GET /api/v1/lyrics/record-info?taskId=...
     // Music:  GET /api/v1/generate/record-info?taskId=...
     const endpoint = type === "lyrics"
-      ? `${sunoApiBase}/api/v1/lyrics/record-info?taskId=${taskId}`
-      : `${sunoApiBase}/api/v1/generate/record-info?taskId=${taskId}`;
+      ? `${settings.sunoApiBase}/api/v1/lyrics/record-info?taskId=${taskId}`
+      : `${settings.sunoApiBase}/api/v1/generate/record-info?taskId=${taskId}`;
 
     const response = await fetch(endpoint, {
       headers: {
@@ -64,22 +64,30 @@ export async function GET(request) {
       const isDone = status === "SUCCESS" || status === "FIRST_SUCCESS";
       const hasFailed = ["CREATE_TASK_FAILED", "GENERATE_AUDIO_FAILED", "CALLBACK_EXCEPTION", "SENSITIVE_WORD_ERROR"].includes(status);
 
+      // Check if all tracks have audioUrl and duration
+      const allTracksReady = sunoData.length > 0 && sunoData.every(t => t.audioUrl && t.duration);
+
       // Save to database directly here to avoid exposing audioUrl to client
       if (isDone && taskId) {
         try {
           await dbConnect();
           const existingOrder = await Order.findOne({ taskId: taskId });
-          if (existingOrder && (!existingOrder.musicTracks || existingOrder.musicTracks.length === 0)) {
-            existingOrder.musicTracks = sunoData.map(track => ({
-              id: track.id,
-              title: track.title,
-              audioUrl: track.audioUrl,
-              streamAudioUrl: track.streamAudioUrl,
-              imageUrl: track.imageUrl,
-              duration: track.duration,
-              lyrics: track.prompt,
-            }));
-            await existingOrder.save();
+          if (existingOrder) {
+            const currentTracks = existingOrder.musicTracks || [];
+            const needsUpdate = currentTracks.length === 0 || currentTracks.some(t => !t.audioUrl || !t.duration);
+
+            if (needsUpdate) {
+              existingOrder.musicTracks = sunoData.map(track => ({
+                id: track.id,
+                title: track.title,
+                audioUrl: track.audioUrl,
+                streamAudioUrl: track.streamAudioUrl,
+                imageUrl: track.imageUrl,
+                duration: track.duration,
+                lyrics: track.prompt,
+              }));
+              await existingOrder.save();
+            }
           }
         } catch (dbErr) {
           console.error("[status] DB Save Error:", dbErr);
@@ -99,6 +107,7 @@ export async function GET(request) {
         })) : [],
         failed: hasFailed,
         errorMessage: taskData?.errorMessage || null,
+        isFullySaved: allTracksReady,
       });
     }
   } catch (error) {

@@ -20,51 +20,43 @@ import { FiUsers } from "react-icons/fi";
 
 const navItems = [
   {
-    icon: <GridIcon />,
-    name: <span className="text-orange-500">Dashboard</span>,
+    icon: <GridIcon className="text-orange-500 text-xl" />,
+    name: "Dashboard",
     path: "/",
   },
   {
     icon: <BiPurchaseTag className="text-orange-500 text-xl" />,
-    name: <span className="text-orange-500">Orders</span>,
+    name: "Orders",
     path: "/orders",
   },
   {
-    icon: <FaRegCircleUser className="text-orange-500 text-xl"/>,
-    name: <span className="text-orange-500">User Profile</span>,
+    icon: <FaRegCircleUser className="text-orange-500 text-xl" />,
+    name: "User Profile",
     path: "/profile",
   },
 
   {
-    name: <span className="text-orange-500">Forms</span>,
-    icon: <MdFormatListBulletedAdd className="text-orange-500 text-xl"/>,
+    name: "Forms",
+    icon: <MdFormatListBulletedAdd className="text-orange-500 text-xl" />,
     subItems: [
-      { name: <span className="text-orange-500">Form Elements</span>, path: "/form-elements", pro: false },
-      { name: <span className="text-orange-500">Generate</span>, path: "/genarate", pro: false },
+      { name: "Form Elements", path: "/form-elements", pro: false },
+      { name: "Generate", path: "/genarate", pro: false },
     ],
   },
   {
-    name: <span className="text-orange-500">Musics</span>,
-    icon: <RiMusicAiLine className="text-orange-500 text-xl"/>,
+    name: "Musics",
+    icon: <RiMusicAiLine className="text-orange-500 text-xl" />,
     subItems: [
-      { name: <span className="text-orange-500">Ordered Musics</span>, path: "/ordered-musics", pro: false },
-      { name: <span className="text-orange-500">All Musics</span>, path: "/all-musics", pro: false },
+      { name: "Ordered Musics", path: "/ordered-musics", pro: false },
+      { name: "All Musics", path: "/all-musics", pro: false },
     ],
   },
-  // {
-  //   name: "Pages",
-  //   icon: <PageIcon />,
-  //   subItems: [
-  //     { name: "Blank Page", path: "/blank", pro: false },
-  //     { name: "404 Error", path: "/error-404", pro: false },
-  //   ],
-  // },
 ];
 
 const othersItems = [
   {
-    icon: <FiUsers className="text-orange-500 text-xl"/>,
-    name: <span className="text-orange-500">Staff Management</span>,
+    icon: <FiUsers className="text-orange-500 text-xl" />,
+    name: "Staff Management",
     subItems: [
       { name: "All Users", path: "/users", pro: false },
       { name: "Create Staff", path: "/create-staff", pro: false },
@@ -100,10 +92,10 @@ const AppSidebar = () => {
                 {nav.icon}
               </span>
               {(isExpanded || isHovered || isMobileOpen) && (
-                <span className={`menu-item-text`}>{nav.name}</span>
+                <span className={`menu-item-text text-orange-500`}>{nav.name}</span>
               )}
               {(isExpanded || isHovered || isMobileOpen) && (
-                <FaChevronDown 
+                <FaChevronDown
                   className={`ml-auto w-3 h-3 transition-transform duration-200 text-orange-500  ${openSubmenu?.type === menuType &&
                     openSubmenu?.index === index
                     ? "rotate-180 text-orange-500"
@@ -128,7 +120,7 @@ const AppSidebar = () => {
                   {nav.icon}
                 </span>
                 {(isExpanded || isHovered || isMobileOpen) && (
-                  <span className={`menu-item-text`}>{nav.name}</span>
+                  <span className={`menu-item-text text-orange-500`}>{nav.name}</span>
                 )}
               </Link>
             )
@@ -156,7 +148,7 @@ const AppSidebar = () => {
                         : "menu-dropdown-item-inactive"
                         }`}
                     >
-                      {subItem.name}
+                      <span className="text-orange-500">{subItem.name}</span>
                       <span className="flex items-center gap-1 ml-auto">
                         {subItem.new && (
                           <span
@@ -277,7 +269,8 @@ const AppSidebar = () => {
                   src={logoImage}
                   alt="Logo"
                   width={60}
-                  height={40}
+                  height={60}
+                  style={{ height: 'auto' }}
                 />
                 Dashboard
               </div>

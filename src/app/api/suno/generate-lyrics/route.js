@@ -1,26 +1,47 @@
 import { NextResponse } from "next/server";
-
-// Correct base URL from official docs: https://api.sunoapi.org
-const sunoApiBase = process.env.SUNO_API_BASE;
+import { getSettings } from "@/lib/getSettings";
 
 export async function POST(request) {
   try {
+    // ── Security: Origin / Referer check ──
+    const settings = await getSettings();
+    const origin = request.headers.get("origin") || "";
+    const referer = request.headers.get("referer") || "";
+    const allowedOrigins = [
+      settings.shopUrl,
+      process.env.NEXT_PUBLIC_APP_URL,
+      "http://localhost:3000",
+      "http://localhost:3001",
+    ].filter(Boolean);
+
+    const isAllowed = allowedOrigins.some(
+      (allowed) => origin.startsWith(allowed) || referer.startsWith(allowed)
+    );
+
+    if (!isAllowed) {
+      return NextResponse.json(
+        { error: "Unauthorized: Request origin not allowed" },
+        { status: 403 }
+      );
+    }
+
     const { prompt } = await request.json();
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
     }
 
-    const apiKey = process.env.SUNO_API_KEY;
+    // ── Use API key from DB (fallback to env) ──
+    const apiKey = settings.sunoApiKey;
     if (!apiKey) {
-      return NextResponse.json({ error: "SUNO_API_KEY not configured" }, { status: 500 });
+      return NextResponse.json({ error: "SUNO API Key not configured. Please set it in Settings." }, { status: 500 });
     }
 
     // POST /api/v1/lyrics — requires prompt AND callBackUrl (required by API)
     // We use a placeholder callback URL since we poll manually via record-info
     const callBackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://example.com"}/api/suno/callback`;
 
-    const response = await fetch(`${sunoApiBase}/api/v1/lyrics`, {
+    const response = await fetch(`${settings.sunoApiBase}/api/v1/lyrics`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
