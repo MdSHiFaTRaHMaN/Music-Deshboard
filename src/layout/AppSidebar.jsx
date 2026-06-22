@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import { BiPurchaseTag } from "react-icons/bi";
+import { LuUsersRound } from "react-icons/lu";
 import {
   BoxCubeIcon,
   CalenderIcon,
@@ -67,11 +68,10 @@ const navItems = [
 
 const othersItems = [
   {
-    icon: <PlugInIcon />,
-    name: "Authentication",
+    icon: <LuUsersRound />,
+    name: "Staffs",
     subItems: [
-      { name: "Sign In", path: "/signin", pro: false },
-      { name: "Sign Up", path: "/signup", pro: false },
+      { name: "Create Staff", path: "/create-staff", pro: false },
     ],
   },
 ];
