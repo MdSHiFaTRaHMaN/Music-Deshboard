@@ -64,7 +64,7 @@ export async function POST(request) {
     await dbConnect();
 
     const body = await request.json();
-    const { formData, musicTracks, taskId } = body;
+    const { formData, musicTracks, taskId, productId, variantId } = body;
 
     if (!formData?.email || !taskId) {
       return withCORS(
@@ -92,6 +92,8 @@ export async function POST(request) {
           selectedDemo: formData.selectedDemo,
           selectedPackage: formData.selectedPackage,
           orderNotes: formData.orderNotes,
+          shopifyProductId: productId || undefined,
+          shopifyVariantId: variantId || undefined,
           // Do not overwrite status if it's already updated to something else like "paid"
         },
       },

@@ -20,7 +20,7 @@ const OrderSchema = new mongoose.Schema(
     taskId: {
       type: String,
       required: true,
-      index: true, // Used to match with Shopify later
+      index: true,
     },
     occasion: String,
     forWho: String,
@@ -30,12 +30,17 @@ const OrderSchema = new mongoose.Schema(
     mood: String,
     lyrics: String,
     musicTracks: [TrackSchema],
-    selectedDemo: String, // ID of the track they favorited
+    selectedDemo: String,
     selectedPackage: String,
     orderNotes: String,
+    shopifyProductId: {
+      type: String,
+      index: true,
+    },
+    shopifyVariantId: String,
     status: {
       type: String,
-      default: "pending_payment", // Initial state
+      default: "pending_payment",
     },
   },
   { timestamps: true }
