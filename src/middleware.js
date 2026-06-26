@@ -3,6 +3,9 @@ import { jwtVerify } from "jose";
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
+  const protocol = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '');
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || request.nextUrl.host;
+  const baseUrl = `${protocol}://${host}`;
 
   // Define public paths that don't require authentication
   const publicPaths = [
@@ -32,14 +35,11 @@ export async function middleware(request) {
 
   if (!token) {
     if (request.nextUrl.searchParams.has("hmac") && request.nextUrl.searchParams.has("shop")) {
-      const callbackUrl = request.nextUrl.clone();
-      callbackUrl.pathname = "/api/auth/shopify-callback";
+      const callbackUrl = new URL("/api/auth/shopify-callback", baseUrl);
+      callbackUrl.search = request.nextUrl.search;
       return NextResponse.redirect(callbackUrl);
     }
-    const signinUrl = request.nextUrl.clone();
-    signinUrl.pathname = "/signin";
-    signinUrl.search = "";
-    return NextResponse.redirect(signinUrl);
+    return NextResponse.redirect(new URL("/signin", baseUrl));
   }
 
   try {
@@ -53,15 +53,13 @@ export async function middleware(request) {
 
     // If already authenticated and Shopify params are present, clean the URL
     if (request.nextUrl.searchParams.has("hmac") && request.nextUrl.searchParams.has("shop")) {
-      const cleanUrl = request.nextUrl.clone();
-      cleanUrl.search = "";
-      return NextResponse.redirect(cleanUrl);
+      return NextResponse.redirect(new URL("/", baseUrl));
     }
 
     return NextResponse.next();
   } catch (error) {
     // Token is invalid or expired
-    return NextResponse.redirect(new URL("/signin", request.url));
+    return NextResponse.redirect(new URL("/signin", baseUrl));
   }
 }
 

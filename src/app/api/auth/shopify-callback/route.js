@@ -33,11 +33,12 @@ export async function GET(request) {
     const url = new URL(request.url);
     const query = Object.fromEntries(url.searchParams.entries());
 
+    const protocol = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '');
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || request.nextUrl.host;
+    const baseUrl = `${protocol}://${host}`;
+
     if (!query.hmac || !query.shop) {
-      const signinUrl = request.nextUrl.clone();
-      signinUrl.pathname = "/signin";
-      signinUrl.searchParams.set("error", "MissingShopifyParams");
-      return NextResponse.redirect(signinUrl);
+      return NextResponse.redirect(new URL("/signin?error=MissingShopifyParams", baseUrl));
     }
 
     await dbConnect();
@@ -46,10 +47,7 @@ export async function GET(request) {
     const settings = await Settings.findOne({});
     if (!settings || !settings.shopifySecretId) {
       console.error("[Shopify Auth] Shopify Secret ID is not configured in Settings.");
-      const signinUrl = request.nextUrl.clone();
-      signinUrl.pathname = "/signin";
-      signinUrl.searchParams.set("error", "ShopifyNotConfigured");
-      return NextResponse.redirect(signinUrl);
+      return NextResponse.redirect(new URL("/signin?error=ShopifyNotConfigured", baseUrl));
     }
 
     // Verify the HMAC
@@ -57,10 +55,7 @@ export async function GET(request) {
 
     if (!isValid) {
       console.error("[Shopify Auth] Invalid HMAC signature.");
-      const signinUrl = request.nextUrl.clone();
-      signinUrl.pathname = "/signin";
-      signinUrl.searchParams.set("error", "InvalidHMAC");
-      return NextResponse.redirect(signinUrl);
+      return NextResponse.redirect(new URL("/signin?error=InvalidHMAC", baseUrl));
     }
 
     // Since this request is legitimately from Shopify, auto-login as an admin.
@@ -69,10 +64,7 @@ export async function GET(request) {
 
     if (!adminUser) {
       console.error("[Shopify Auth] No active admin user found in database.");
-      const signinUrl = request.nextUrl.clone();
-      signinUrl.pathname = "/signin";
-      signinUrl.searchParams.set("error", "NoAdminFound");
-      return NextResponse.redirect(signinUrl);
+      return NextResponse.redirect(new URL("/signin?error=NoAdminFound", baseUrl));
     }
 
     // Generate JWT token
@@ -89,10 +81,7 @@ export async function GET(request) {
       .sign(secret);
 
     // Redirect to Dashboard (or the originally requested path if we preserved it)
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/";
-    dashboardUrl.search = "";
-    const response = NextResponse.redirect(dashboardUrl);
+    const response = NextResponse.redirect(new URL("/", baseUrl));
 
     // Set the cookie with SameSite=None so it works inside the Shopify iframe
     response.cookies.set("admin_token", token, {
@@ -107,9 +96,6 @@ export async function GET(request) {
 
   } catch (error) {
     console.error("[Shopify Auth] Internal Error:", error);
-    const signinUrl = request.nextUrl.clone();
-    signinUrl.pathname = "/signin";
-    signinUrl.searchParams.set("error", "InternalServerError");
-    return NextResponse.redirect(signinUrl);
+    return NextResponse.redirect(new URL("/signin?error=InternalServerError", baseUrl));
   }
 }
