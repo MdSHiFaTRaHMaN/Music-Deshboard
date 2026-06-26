@@ -15,6 +15,7 @@ export async function middleware(request) {
     "/api/suno/status",
     "/api/orders",
     "/api/form-options", // <-- added: was missing, causing a redirect-to-/signin (307) on every storefront call
+    "/api/auth/shopify-callback",
     "/_next", // static files
     "/favicon.ico"
   ];
@@ -30,6 +31,11 @@ export async function middleware(request) {
   const token = request.cookies.get("admin_token")?.value;
 
   if (!token) {
+    if (request.nextUrl.searchParams.has("hmac") && request.nextUrl.searchParams.has("shop")) {
+      const callbackUrl = new URL("/api/auth/shopify-callback", request.url);
+      callbackUrl.search = request.nextUrl.search;
+      return NextResponse.redirect(callbackUrl);
+    }
     return NextResponse.redirect(new URL("/signin", request.url));
   }
 
