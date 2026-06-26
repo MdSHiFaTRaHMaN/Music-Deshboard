@@ -36,9 +36,9 @@ export async function getDashboardMetrics() {
     let shopifyOrdersThisMonth = 0;
     let shopifyOrdersLastMonth = 0;
 
-    if (settings.shopUrl && settings.shopifyAdminApiKey) {
+    if (settings.shopUrl1 && settings.shopifyAdminApiKey) {
       try {
-        let url = settings.shopUrl;
+        let url = settings.shopUrl1;
         if (!url.startsWith('http')) url = `https://${url}`;
         
         // Fetch total count

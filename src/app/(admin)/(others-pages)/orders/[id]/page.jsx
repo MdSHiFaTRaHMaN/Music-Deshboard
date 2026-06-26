@@ -179,8 +179,8 @@ export default async function ShopifyOrderDetailsPage({ params }) {
                             <FiMusic size={20} />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-gray-800 dark:text-white/90">Selected Track: {matchedMusic.track.title || "Unknown Title"}</p>
-                            <p className="text-xs text-gray-500">Generated Music ID: {matchedMusic.musicId}</p>
+                            <p className="text-sm font-semibold text-gray-800 dark:text-white/90">Selected Music: {matchedMusic.track.title || "Unknown Title"}</p>
+                            <p className="text-xs text-gray-500">Music ID: {matchedMusic.musicId}</p>
                           </div>
                         </div>
 
