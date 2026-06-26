@@ -32,11 +32,14 @@ export async function middleware(request) {
 
   if (!token) {
     if (request.nextUrl.searchParams.has("hmac") && request.nextUrl.searchParams.has("shop")) {
-      const callbackUrl = new URL("/api/auth/shopify-callback", request.url);
-      callbackUrl.search = request.nextUrl.search;
+      const callbackUrl = request.nextUrl.clone();
+      callbackUrl.pathname = "/api/auth/shopify-callback";
       return NextResponse.redirect(callbackUrl);
     }
-    return NextResponse.redirect(new URL("/signin", request.url));
+    const signinUrl = request.nextUrl.clone();
+    signinUrl.pathname = "/signin";
+    signinUrl.search = "";
+    return NextResponse.redirect(signinUrl);
   }
 
   try {
@@ -46,6 +49,13 @@ export async function middleware(request) {
     // Role-based protection for specific routes
     if (pathname.startsWith("/create-staff") && payload.role !== "admin") {
       return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    // If already authenticated and Shopify params are present, clean the URL
+    if (request.nextUrl.searchParams.has("hmac") && request.nextUrl.searchParams.has("shop")) {
+      const cleanUrl = request.nextUrl.clone();
+      cleanUrl.search = "";
+      return NextResponse.redirect(cleanUrl);
     }
 
     return NextResponse.next();
