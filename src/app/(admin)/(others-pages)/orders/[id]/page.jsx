@@ -8,8 +8,8 @@ import EditOrderModal from "@/components/ecommerce/EditOrderModal";
 import dbConnect from "@/lib/mongoose";
 import Order from "@/models/Order";
 import OrderEmailGenerator from "@/components/ecommerce/OrderEmailGenerator";
+import FulfillmentManager from "@/components/ecommerce/FulfillmentManager";
 import { FiMusic, FiDownload } from "react-icons/fi";
-import fs from "fs";
 
 export const metadata = {
   title: "Shopify Order Details | Dashboard",
@@ -76,10 +76,7 @@ export default async function ShopifyOrderDetailsPage({ params }) {
           }
         }
 
-        // DEBUG: Write order info to file
-        try {
-          fs.writeFileSync('last_order_debug.json', JSON.stringify(orderInfo, null, 2));
-        } catch (e) { }
+
 
       } else {
         errorMsg = data.errors ? JSON.stringify(data.errors) : "Failed to fetch order from Shopify.";
@@ -141,6 +138,8 @@ export default async function ShopifyOrderDetailsPage({ params }) {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* Left: Main Info */}
         <div className="xl:col-span-2 space-y-6">
+          {/* Fulfillment Manager */}
+          {/* <FulfillmentManager orderId={orderInfo.id} currentStatus={orderInfo.fulfillment_status} /> */}
 
           {/* Order Items */}
           <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">

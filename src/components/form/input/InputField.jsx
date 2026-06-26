@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 
 const Input = ({
   type = "text",
@@ -17,6 +18,11 @@ const Input = ({
   error = false,
   hint,
 }) => {
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Determine the actual type of the input element
+  const inputType = type === "password" && showPassword ? "text" : type;
+
   // Determine input styles based on state (disabled, success, error)
   let inputClasses = `h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 ${className}`;
 
@@ -31,10 +37,15 @@ const Input = ({
     inputClasses += ` bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800`;
   }
 
+  // If it's a password field, we need padding on the right to make room for the icon
+  if (type === "password") {
+    inputClasses += ` pr-10`;
+  }
+
   return (
     <div className="relative">
       <input
-        type={type}
+        type={inputType}
         id={id}
         name={name}
         placeholder={placeholder}
@@ -47,6 +58,16 @@ const Input = ({
         disabled={disabled}
         className={inputClasses}
       />
+
+      {type === "password" && (
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-[12px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none"
+        >
+          {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+        </button>
+      )}
 
       {/* Optional Hint Text */}
       {hint && (

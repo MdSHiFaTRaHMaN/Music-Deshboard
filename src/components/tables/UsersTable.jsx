@@ -13,12 +13,14 @@ import { Modal } from "../ui/modal";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
+import { useUser } from "@/context/UserContext";
 
 export default function UsersTable() {
+  const { user, loading: userLoading } = useUser();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -82,7 +84,20 @@ export default function UsersTable() {
     }
   };
 
-  if (loading) return <div className="p-4 text-center">Loading users...</div>;
+  if (loading || userLoading) return <div className="p-4 text-center">Loading users...</div>;
+  
+  if (!user || user.role !== "admin") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[500px] text-center">
+        <h1 className="text-6xl font-bold text-gray-800 dark:text-white/90 mb-4">401</h1>
+        <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Unauthorized Access</h2>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">
+          You do not have the required administrator privileges to view or manage staff.
+        </p>
+      </div>
+    );
+  }
+
   if (error) return <div className="p-4 text-center text-red-500">{error}</div>;
 
   return (
@@ -119,14 +134,19 @@ export default function UsersTable() {
                   <TableRow key={user._id}>
                     <TableCell className="px-5 py-4 sm:px-6 text-start">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 overflow-hidden rounded-full shrink-0">
-                          <Image
-                            width={40}
-                            height={40}
-                            src={user.avatar || "/images/user/owner.jpg"}
-                            alt={user.name}
-                          />
-                        </div>
+                        <span className="flex items-center justify-center mr-3 overflow-hidden rounded-full h-11 w-11 shrink-0 bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400 font-bold text-lg">
+                          {user?.avatar ? (
+                            <Image
+                              width={44}
+                              height={44}
+                              src={user.avatar}
+                              alt="User"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            user?.name ? user.name.charAt(0).toUpperCase() : "U"
+                          )}
+                        </span>
                         <div>
                           <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
                             {user.name}
@@ -189,7 +209,7 @@ export default function UsersTable() {
             {updateError && (
               <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg">{updateError}</div>
             )}
-            
+
             <div>
               <Label>Full Name</Label>
               <Input
@@ -199,7 +219,7 @@ export default function UsersTable() {
                 required
               />
             </div>
-            
+
             <div>
               <Label>Email</Label>
               <Input
@@ -223,7 +243,6 @@ export default function UsersTable() {
                 >
                   <option value="admin">Admin</option>
                   <option value="staff">Staff</option>
-                  <option value="user">User</option>
                 </select>
               </div>
 

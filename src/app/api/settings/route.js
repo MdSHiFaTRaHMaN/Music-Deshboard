@@ -1,10 +1,29 @@
 import { NextResponse } from "next/server";
+import { jwtVerify } from "jose";
 import dbConnect from "@/lib/mongoose";
 import Settings from "@/models/Settings";
 import { clearSettingsCache } from "@/lib/getSettings";
 
-export async function GET() {
+// Helper to get payload
+async function getAdminPayload(request) {
+  const token = request.cookies.get("admin_token")?.value;
+  if (!token) return null;
+  const secret = new TextEncoder().encode(process.env.JWT_SECRET || "super-secret-fallback-key-change-me");
   try {
+    const { payload } = await jwtVerify(token, secret);
+    return payload;
+  } catch (err) {
+    return null;
+  }
+}
+
+export async function GET(request) {
+  try {
+    const payload = await getAdminPayload(request);
+    if (!payload || payload.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden: Only admins can view settings" }, { status: 403 });
+    }
+
     await dbConnect();
     let settings = await Settings.findOne({});
     
@@ -21,6 +40,11 @@ export async function GET() {
 
 export async function PUT(request) {
   try {
+    const payload = await getAdminPayload(request);
+    if (!payload || payload.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden: Only admins can update settings" }, { status: 403 });
+    }
+
     const data = await request.json();
     await dbConnect();
 

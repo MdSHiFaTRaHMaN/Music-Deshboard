@@ -50,7 +50,7 @@ export async function POST(request) {
       name,
       email,
       password: hashedPassword,
-      role: role || "user",
+      role: role || "staff",
       phone: phone || "",
       designation: designation || "",
     });

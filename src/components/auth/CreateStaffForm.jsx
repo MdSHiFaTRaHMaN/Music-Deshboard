@@ -4,8 +4,10 @@ import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
 import ComponentCard from "@/components/common/ComponentCard";
 import React, { useState } from "react";
+import { useUser } from "@/context/UserContext";
 
 export default function CreateStaffForm() {
+  const { user, loading: userLoading } = useUser();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -55,6 +57,20 @@ export default function CreateStaffForm() {
       setLoading(false);
     }
   };
+
+  if (userLoading) return <div className="p-4 text-center">Loading...</div>;
+
+  if (!user || user.role !== "admin") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[500px] text-center">
+        <h1 className="text-6xl font-bold text-gray-800 dark:text-white/90 mb-4">401</h1>
+        <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Unauthorized Access</h2>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">
+          You do not have the required administrator privileges to create staff.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 gap-6 max-w-[600px] mx-auto">
@@ -118,7 +134,6 @@ export default function CreateStaffForm() {
               >
                 <option value="admin">Admin</option>
                 <option value="staff">Staff</option>
-                <option value="user">User</option>
               </select>
             </div>
 

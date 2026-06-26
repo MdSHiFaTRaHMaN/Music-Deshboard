@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
+import { useUser } from "../context/UserContext";
 import { BiPurchaseTag } from "react-icons/bi";
 import { LuUsersRound } from "react-icons/lu";
 import {
@@ -16,7 +17,7 @@ import logoImage from "../../public/images/logo/own-music-logo.png";
 import { FaChevronDown, FaRegCircleUser } from "react-icons/fa6";
 import { MdFormatListBulletedAdd } from "react-icons/md";
 import { RiMusicAiLine } from "react-icons/ri";
-import { FiUsers } from "react-icons/fi";
+import { FiUsers, FiSettings } from "react-icons/fi";
 
 const navItems = [
   {
@@ -30,42 +31,43 @@ const navItems = [
     path: "/orders",
   },
   {
-    icon: <FaRegCircleUser className="text-orange-500 text-xl" />,
-    name: "User Profile",
-    path: "/profile",
-  },
-
-  {
-    name: "Forms",
+    name: "Form Elements",
     icon: <MdFormatListBulletedAdd className="text-orange-500 text-xl" />,
-    subItems: [
-      { name: "Form Elements", path: "/form-elements", pro: false },
-      { name: "Generate", path: "/genarate", pro: false },
-    ],
+    path: "/form-elements",
   },
   {
     name: "Musics",
     icon: <RiMusicAiLine className="text-orange-500 text-xl" />,
     subItems: [
-      { name: "Ordered Musics", path: "/ordered-musics", pro: false },
-      { name: "All Musics", path: "/all-musics", pro: false },
+      { name: "Customer Choice Music", path: "/ordered-musics", pro: false },
+      { name: "All Music", path: "/all-musics", pro: false },
     ],
   },
 ];
 
-const othersItems = [
+const othersItems = (role) => [
+  ...(role === "admin"
+    ? [
+      {
+        icon: <FiUsers className="text-orange-500 text-xl" />,
+        name: "Staff Management",
+        subItems: [
+          { name: "All Users", path: "/users", pro: false },
+          { name: "Create Staff", path: "/create-staff", pro: false },
+        ],
+      },
+    ]
+    : []),
   {
-    icon: <FiUsers className="text-orange-500 text-xl" />,
-    name: "Staff Management",
-    subItems: [
-      { name: "All Users", path: "/users", pro: false },
-      { name: "Create Staff", path: "/create-staff", pro: false },
-    ],
+    icon: <FaRegCircleUser className="text-orange-500 text-xl" />,
+    name: "User Profile",
+    path: "/profile",
   },
 ];
 
 const AppSidebar = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { user } = useUser();
   const pathname = usePathname();
 
   const renderMenuItems = (navItems, menuType) => (
@@ -193,7 +195,7 @@ const AppSidebar = () => {
     // Check if the current path matches any submenu item
     let submenuMatched = false;
     ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
+      const items = menuType === "main" ? navItems : othersItems(user?.role);
       items.forEach((nav, index) => {
         if (nav.subItems) {
           nav.subItems.forEach((subItem) => {
@@ -292,7 +294,7 @@ const AppSidebar = () => {
           )}
         </Link>
       </div>
-      <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
+      <div className="flex-1 flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
             <div>
@@ -324,12 +326,35 @@ const AppSidebar = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(othersItems, "others")}
+              {renderMenuItems(othersItems(user?.role), "others")}
             </div>
           </div>
         </nav>
         {isExpanded || isHovered || isMobileOpen ? "" : null}
       </div>
+
+      {/* Pinned Bottom Settings for Admin */}
+      {user?.role === "admin" && (
+        <div className="mt-auto pt-3 pb-5 border-t border-gray-200 dark:border-gray-800">
+          <Link
+            href="/settings"
+            className={`menu-item group ${isActive("/settings") ? "menu-item-active" : "menu-item-inactive"
+              }`}
+          >
+            <span
+              className={`${isActive("/settings")
+                ? "menu-item-icon-active"
+                : "menu-item-icon-inactive"
+                }`}
+            >
+              <FiSettings className="text-orange-500 text-xl" />
+            </span>
+            {(isExpanded || isHovered || isMobileOpen) && (
+              <span className={`menu-item-text text-orange-500`}>Settings</span>
+            )}
+          </Link>
+        </div>
+      )}
     </aside>
   );
 };

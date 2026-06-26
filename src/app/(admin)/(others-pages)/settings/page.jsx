@@ -6,16 +6,20 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import { useToast } from "@/components/ui/toast/Toast";
+import { useUser } from "@/context/UserContext";
 
 export default function SettingsPage() {
   const showToast = useToast();
+  const { user, loading: userLoading } = useUser();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [initialData, setInitialData] = useState(null);
   const [formData, setFormData] = useState({
     shopifySecretId: "",
     shopifyClientId: "",
     shopifyAdminApiKey: "",
-    shopUrl: "",
+    shopUrl1: "",
+    shopUrl2: "",
     sunoApiKey: "",
     notificationEmail: "",
     contactPhone: "",
@@ -30,7 +34,7 @@ export default function SettingsPage() {
       const res = await fetch("/api/settings");
       if (res.ok) {
         const data = await res.json();
-        setFormData({
+        const newFormData = {
           shopifySecretId: data.shopifySecretId || "",
           shopifyClientId: data.shopifyClientId || "",
           shopifyAdminApiKey: data.shopifyAdminApiKey || "",
@@ -39,7 +43,9 @@ export default function SettingsPage() {
           sunoApiKey: data.sunoApiKey || "",
           notificationEmail: data.notificationEmail || "",
           contactPhone: data.contactPhone || "",
-        });
+        };
+        setFormData(newFormData);
+        setInitialData(newFormData);
       }
     } catch (error) {
       console.error("Failed to load settings:", error);
@@ -64,6 +70,7 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
+        setInitialData(formData);
         showToast({ variant: "success", title: "Success", message: "Settings updated successfully!" });
       } else {
         const errorData = await res.json();
@@ -77,13 +84,27 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="w-8 h-8 border-4 border-brand-500 rounded-full border-t-transparent animate-spin"></div>
       </div>
     );
   }
+
+  if (!user || user.role !== "admin") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[500px] text-center">
+        <h1 className="text-6xl font-bold text-gray-800 dark:text-white/90 mb-4">401</h1>
+        <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Unauthorized Access</h2>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">
+          You do not have the required administrator privileges to view or edit platform settings.
+        </p>
+      </div>
+    );
+  }
+
+  const isModified = initialData && JSON.stringify(formData) !== JSON.stringify(initialData);
 
   return (
     <div className="space-y-6">
@@ -100,7 +121,7 @@ export default function SettingsPage() {
             <div className="col-span-1">
               <Label>Shopify Secret ID</Label>
               <Input
-                type="text"
+                type="password"
                 name="shopifySecretId"
                 value={formData.shopifySecretId}
                 onChange={handleChange}
@@ -110,7 +131,7 @@ export default function SettingsPage() {
             <div className="col-span-1">
               <Label>Shopify Client ID</Label>
               <Input
-                type="text"
+                type="password"
                 name="shopifyClientId"
                 value={formData.shopifyClientId}
                 onChange={handleChange}
@@ -120,7 +141,7 @@ export default function SettingsPage() {
             <div className="col-span-1 lg:col-span-2">
               <Label>Shopify Admin API Access Key</Label>
               <Input
-                type="text"
+                type="password"
                 name="shopifyAdminApiKey"
                 value={formData.shopifyAdminApiKey}
                 onChange={handleChange}
@@ -130,7 +151,7 @@ export default function SettingsPage() {
             <div className="col-span-1 lg:col-span-2">
               <Label>Shop URL</Label>
               <Input
-                type="text"
+                type="password"
                 name="shopUrl1"
                 value={formData.shopUrl1}
                 onChange={handleChange}
@@ -140,7 +161,7 @@ export default function SettingsPage() {
             <div className="col-span-1 lg:col-span-2">
               <Label>Host URL</Label>
               <Input
-                type="text"
+                type="password"
                 name="shopUrl2"
                 value={formData.shopUrl2}
                 onChange={handleChange}
@@ -170,7 +191,7 @@ export default function SettingsPage() {
         </div>
 
         {/* General Settings */}
-        <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6 bg-white dark:bg-white/[0.03]">
+        {/* <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6 bg-white dark:bg-white/[0.03]">
           <h4 className="mb-6 text-lg font-semibold text-gray-800 dark:text-white/90">
             General Configuration
           </h4>
@@ -202,14 +223,14 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Form Actions */}
         <div className="flex items-center justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => fetchSettings()}>
+          <Button type="button" variant="outline" onClick={() => fetchSettings()} disabled={!isModified || saving}>
             Discard Changes
           </Button>
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" disabled={!isModified || saving}>
             {saving ? "Saving..." : "Save Settings"}
           </Button>
         </div>

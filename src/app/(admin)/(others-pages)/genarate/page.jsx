@@ -19,7 +19,7 @@ export default function GeneratePage() {
                 const shopHost2 = shopUrl2 ? new URL(shopUrl2).host : "";
 
                 const currentHost = window.location.host;
-                const isLocalhost = currentHost === "localhost:3000" || currentHost === "127.0.0.1:3000" || currentHost === "localhost:3001" || currentHost === "127.0.0.1:3001";
+                const isLocalhost = currentHost === "https://music-deshboard.onrender.com" || currentHost === "localhost:3000" || currentHost === "127.0.0.1:3000" || currentHost === "localhost:3001" || currentHost === "127.0.0.1:3001";
 
                 // Allow direct access on localhost for development
                 if (isLocalhost) {
@@ -45,7 +45,7 @@ export default function GeneratePage() {
                     } catch (e) {
                         // If URL parsing fails, fall back to string check
                         const referrerLower = document.referrer.toLowerCase();
-                        if ((shopUrl && referrerLower.startsWith(shopUrl.toLowerCase())) || 
+                        if ((shopUrl && referrerLower.startsWith(shopUrl.toLowerCase())) ||
                             (shopUrl2 && referrerLower.startsWith(shopUrl2.toLowerCase()))) {
                             setIsAuthorized(true);
                             return;
