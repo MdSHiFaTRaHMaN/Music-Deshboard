@@ -286,7 +286,7 @@ const AppSidebar = () => {
             </>
           ) : (
             <Image
-              src="/images/logo/logo-icon.svg"
+              src={logoImage}
               alt="Logo"
               width={32}
               height={32}

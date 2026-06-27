@@ -10,13 +10,25 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export default function MonthlySalesChart({ chartData = { categories: [], series: [] } }) {
+export default function MonthlySalesChart({ chartData = {} }) {
+  const [timeRange, setTimeRange] = useState('7_days');
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Fallback data structure
+  const safeData = {
+    '7_days': chartData['7_days'] || { categories: [], series: [] },
+    '30_days': chartData['30_days'] || { categories: [], series: [] },
+    '60_days': chartData['60_days'] || { categories: [], series: [] }
+  };
+
+  const currentData = safeData[timeRange];
+
   const options = {
     colors: ["#ff8f43"],
     chart: {
       fontFamily: "Outfit, sans-serif",
       type: "bar",
-      height: 180,
+      height: "100%",
       toolbar: {
         show: false,
       },
@@ -24,8 +36,8 @@ export default function MonthlySalesChart({ chartData = { categories: [], series
     plotOptions: {
       bar: {
         horizontal: false,
-        columnWidth: "39%",
-        borderRadius: 5,
+        columnWidth: "25%",
+        borderRadius: 6,
         borderRadiusApplication: "end",
       },
     },
@@ -38,16 +50,21 @@ export default function MonthlySalesChart({ chartData = { categories: [], series
       colors: ["transparent"],
     },
     xaxis: {
-      categories: chartData.categories.length > 0 ? chartData.categories : [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-      ],
+      categories: currentData.categories.length > 0 ? currentData.categories : [],
       axisBorder: {
         show: false,
       },
       axisTicks: {
         show: false,
       },
+      tickAmount: timeRange === '7_days' ? 7 : timeRange === '30_days' ? 6 : 10,
+      labels: {
+        rotate: 0,
+        hideOverlappingLabels: true,
+        style: {
+          colors: "#64748B",
+        }
+      }
     },
     legend: {
       show: true,
@@ -59,6 +76,13 @@ export default function MonthlySalesChart({ chartData = { categories: [], series
       title: {
         text: undefined,
       },
+      min: 0,
+      labels: {
+        formatter: (val) => Math.floor(val),
+        style: {
+          colors: "#64748B",
+        }
+      }
     },
     grid: {
       yaxis: {
@@ -66,12 +90,14 @@ export default function MonthlySalesChart({ chartData = { categories: [], series
           show: true,
         },
       },
+      borderColor: "#F1F5F9",
+      strokeDashArray: 4,
     },
     fill: {
       opacity: 1,
     },
-
     tooltip: {
+      theme: "light",
       x: {
         show: false,
       },
@@ -80,13 +106,13 @@ export default function MonthlySalesChart({ chartData = { categories: [], series
       },
     },
   };
+  
   const series = [
     {
       name: "Orders",
-      data: chartData.series.length > 0 ? chartData.series : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      data: currentData.series.length > 0 ? currentData.series : [],
     },
   ];
-  const [isOpen, setIsOpen] = useState(false);
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -96,11 +122,19 @@ export default function MonthlySalesChart({ chartData = { categories: [], series
     setIsOpen(false);
   }
 
+  const handleSelectRange = (range) => {
+    setTimeRange(range);
+    closeDropdown();
+  };
+
+  const titleText = timeRange === '7_days' ? 'Orders (Last 7 Days)' : 
+                    timeRange === '30_days' ? 'Orders (Last 30 Days)' : 'Orders (Last 60 Days)';
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6">
+    <div className="flex flex-col h-full overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-          Orders (Last 7 Days)
+          {titleText}
         </h3>
 
         <div className="relative inline-block">
@@ -110,31 +144,38 @@ export default function MonthlySalesChart({ chartData = { categories: [], series
           <Dropdown
             isOpen={isOpen}
             onClose={closeDropdown}
-            className="w-40 p-2"
+            className="w-48 p-2"
           >
             <DropdownItem
-              onItemClick={closeDropdown}
-              className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+              onItemClick={() => handleSelectRange('7_days')}
+              className={`flex w-full font-normal text-left rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 ${timeRange === '7_days' ? 'text-brand-500 bg-brand-50 dark:bg-brand-500/10' : 'text-gray-500 dark:text-gray-400'}`}
             >
-              View More
+              Last 7 Days
             </DropdownItem>
             <DropdownItem
-              onItemClick={closeDropdown}
-              className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+              onItemClick={() => handleSelectRange('30_days')}
+              className={`flex w-full font-normal text-left rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 ${timeRange === '30_days' ? 'text-brand-500 bg-brand-50 dark:bg-brand-500/10' : 'text-gray-500 dark:text-gray-400'}`}
             >
-              Delete
+              Last 30 Days
+            </DropdownItem>
+            <DropdownItem
+              onItemClick={() => handleSelectRange('60_days')}
+              className={`flex w-full font-normal text-left rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 ${timeRange === '60_days' ? 'text-brand-500 bg-brand-50 dark:bg-brand-500/10' : 'text-gray-500 dark:text-gray-400'}`}
+            >
+              Last 60 Days
             </DropdownItem>
           </Dropdown>
         </div>
       </div>
 
-      <div className="max-w-full overflow-x-auto custom-scrollbar">
-        <div className="-ml-5 min-w-[650px] xl:min-w-full pl-2">
+      <div className="flex-1 w-full mt-4 min-h-[300px]">
+        <div className="-ml-5 w-full h-full pl-2">
           <ReactApexChart
             options={options}
             series={series}
             type="bar"
-            height={180}
+            height="100%"
+            width="100%"
           />
         </div>
       </div>

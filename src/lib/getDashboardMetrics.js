@@ -89,15 +89,16 @@ export async function getDashboardMetrics() {
     let addedToCartThisMonth = Math.max(0, generatedOrdersThisMonth - shopifyOrdersThisMonth);
     let addedToCartLastMonth = Math.max(0, generatedOrdersLastMonth - shopifyOrdersLastMonth);
 
-    // For MonthlySalesChart (Let's group by date for the last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-    sevenDaysAgo.setHours(0, 0, 0, 0);
+    // For MonthlySalesChart (aggregate up to 60 days)
+    const nowForChart = new Date();
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(nowForChart.getDate() - 59);
+    sixtyDaysAgo.setHours(0, 0, 0, 0);
 
     const dailyOrdersAgg = await Order.aggregate([
       {
         $match: {
-          createdAt: { $gte: sevenDaysAgo }
+          createdAt: { $gte: sixtyDaysAgo }
         }
       },
       {
@@ -107,31 +108,43 @@ export async function getDashboardMetrics() {
           },
           count: { $sum: 1 }
         }
-      },
-      { $sort: { _id: 1 } }
+      }
     ]);
 
-    // Build chart data array mapping each of the last 7 days to the count
-    const chartCategories = [];
-    const chartSeriesData = [];
-    
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(sevenDaysAgo);
-      d.setDate(d.getDate() + i);
-      const dateStr = d.toISOString().split('T')[0];
+    const buildChartData = (days) => {
+      const categories = [];
+      const seriesData = [];
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - (days - 1));
+      startDate.setHours(0, 0, 0, 0);
       
-      const found = dailyOrdersAgg.find(item => item._id === dateStr);
-      chartCategories.push(d.toLocaleDateString("en-US", { weekday: 'short' })); // e.g. Mon, Tue
-      chartSeriesData.push(found ? found.count : 0);
-    }
+      for (let i = 0; i < days; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
+        const dateStr = d.toISOString().split('T')[0];
+        const found = dailyOrdersAgg.find(item => item._id === dateStr);
+        
+        let label = "";
+        if (days === 7) {
+          label = d.toLocaleDateString("en-US", { weekday: 'short' });
+        } else {
+          label = d.toLocaleDateString("en-US", { month: 'short', day: 'numeric' });
+        }
+        
+        categories.push(label);
+        seriesData.push(found ? found.count : 0);
+      }
+      return { categories, series: seriesData };
+    };
 
     return {
       totalOrders,
       totalCustomers,
       recentOrders: shopifyRecentOrders,
       chartData: {
-        categories: chartCategories,
-        series: chartSeriesData
+        '7_days': buildChartData(7),
+        '30_days': buildChartData(30),
+        '60_days': buildChartData(60),
       },
       revenueThisMonth,
       revenueLastMonth,
