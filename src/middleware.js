@@ -7,26 +7,36 @@ export async function middleware(request) {
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || request.nextUrl.host;
   const baseUrl = `${protocol}://${host}`;
 
-  // Define public paths that don't require authentication
-  const publicPaths = [
+  // Check if request is originating from the Shopify storefront
+  const origin = request.headers.get('origin') || "";
+  const referer = request.headers.get('referer') || "";
+  const isFromShopifyStorefront = origin.includes('myownsongs.com') || referer.includes('myownsongs.com');
+
+  // Paths that are ALWAYS public (App & Shopify)
+  const alwaysPublicPaths = [
     "/signin",
     "/signup",
-    "/genarate",
     "/api/auth/login",
-    "/api/suno/generate-music",
-    "/api/suno/generate-lyrics",
-    "/api/suno/status",
-    "/api/orders",
-    "/api/form-options", // <-- added: was missing, causing a redirect-to-/signin (307) on every storefront call
-    "/api/auth/shopify-callback",
+    "/api/auth/shopify-callback", // Keep Shopify app authentication working
     "/_next", // static files
     "/favicon.ico"
   ];
 
-  const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
+  // Paths that are public ONLY when requested from the Shopify Storefront
+  const shopifyPublicPaths = [
+    "/genarate",
+    "/api/suno/generate-music",
+    "/api/suno/generate-lyrics",
+    "/api/suno/status",
+    "/api/orders",
+    "/api/form-options" // Used by storefront
+  ];
 
-  // If it's a public path, let it pass
-  if (isPublicPath) {
+  const isAlwaysPublic = alwaysPublicPaths.some(path => pathname.startsWith(path));
+  const isShopifyPublic = isFromShopifyStorefront && shopifyPublicPaths.some(path => pathname.startsWith(path));
+
+  // If it's a permitted public path, let it pass without authentication
+  if (isAlwaysPublic || isShopifyPublic) {
     return NextResponse.next();
   }
 
