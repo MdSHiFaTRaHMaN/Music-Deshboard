@@ -86,10 +86,10 @@ export async function GET(request) {
     // Set the cookie with SameSite=None so it works inside the Shopify iframe
     response.cookies.set("admin_token", token, {
       httpOnly: true,
-      secure: true, // Required for SameSite=None
-      sameSite: "none",
+      secure: false,
+      sameSite: "lax",
       path: "/",
-      maxAge: 30 * 24 * 60 * 60, // 30 days
+      maxAge: 30 * 24 * 60 * 60, // in seconds
     });
 
     return response;

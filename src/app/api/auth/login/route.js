@@ -54,8 +54,8 @@ export async function POST(request) {
     
     response.cookies.set("admin_token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: false, // process.env.NODE_ENV === "production" ? true : false, -> disabled so it works on IP (HTTP)
+      sameSite: "lax", // process.env.NODE_ENV === "production" ? "none" : "lax", -> disabled for HTTP
       path: "/",
       maxAge: expiresInDays * 24 * 60 * 60, // in seconds
     });
