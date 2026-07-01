@@ -13,7 +13,7 @@ const outfit = Outfit({
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${outfit.className} dark:bg-gray-900`}>
+      <body className={`${outfit.className} dark:bg-gray-900`} suppressHydrationWarning>
         <ThemeProvider>
           <UserProvider>
             <SidebarProvider>{children}</SidebarProvider>

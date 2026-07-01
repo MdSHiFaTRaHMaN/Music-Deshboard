@@ -66,3 +66,48 @@ export async function PUT(request, { params }) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function DELETE(request, { params }) {
+  try {
+    const { id } = await params;
+    
+    // 1. Verify that the request is from an admin
+    const token = request.cookies.get("admin_token")?.value;
+    
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET || "super-secret-fallback-key-change-me");
+    let payload;
+    try {
+      const { payload: jwtPayload } = await jwtVerify(token, secret);
+      payload = jwtPayload;
+    } catch (err) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
+    if (payload.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden: Only admins can delete users" }, { status: 403 });
+    }
+
+    // 2. Connect to DB
+    await dbConnect();
+    
+    const userToDelete = await User.findById(id);
+    if (!userToDelete) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    if (userToDelete.role === "admin") {
+      return NextResponse.json({ error: "Cannot delete an admin account" }, { status: 403 });
+    }
+
+    await User.findByIdAndDelete(id);
+
+    return NextResponse.json({ success: true, message: "User deleted successfully" }, { status: 200 });
+  } catch (error) {
+    console.error("[DeleteUser] Error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

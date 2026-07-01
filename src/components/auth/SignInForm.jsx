@@ -7,9 +7,11 @@ import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
+import { useUser } from "@/context/UserContext";
 
 export default function SignInForm() {
   const router = useRouter();
+  const { fetchUser } = useUser();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isChecked, setIsChecked] = useState(true);
@@ -30,6 +32,8 @@ export default function SignInForm() {
 
       const data = await res.json();
       if (res.ok) {
+        // Fetch the user data so the context is updated
+        await fetchUser();
         // Redirect to dashboard
         router.push("/");
         router.refresh();
@@ -164,7 +168,7 @@ export default function SignInForm() {
                   </Link>
                 </div>
                 <div>
-                  <Button className="w-full" size="sm" disabled={loading}>
+                  <Button type="submit" className="w-full" size="sm" disabled={loading}>
                     {loading ? "Signing in..." : "Sign in"}
                   </Button>
                 </div>

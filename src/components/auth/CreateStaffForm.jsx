@@ -160,7 +160,7 @@ export default function CreateStaffForm() {
             </div>
 
             <div className="pt-2">
-              <Button className="w-full" size="sm" disabled={loading}>
+              <Button type="submit" className="w-full" size="sm" disabled={loading}>
                 {loading ? "Creating..." : "Create User"}
               </Button>
             </div>

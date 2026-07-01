@@ -44,6 +44,9 @@ export async function middleware(request) {
   const token = request.cookies.get("admin_token")?.value;
 
   if (!token) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     if (request.nextUrl.searchParams.has("hmac") && request.nextUrl.searchParams.has("shop")) {
       const callbackUrl = new URL("/api/auth/shopify-callback", baseUrl);
       callbackUrl.search = request.nextUrl.search;
@@ -69,6 +72,9 @@ export async function middleware(request) {
     return NextResponse.next();
   } catch (error) {
     // Token is invalid or expired
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/signin", baseUrl));
   }
 }

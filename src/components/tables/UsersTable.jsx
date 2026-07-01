@@ -84,6 +84,27 @@ export default function UsersTable() {
     }
   };
 
+  const handleDelete = async (userId) => {
+    if (!window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/auth/users/${userId}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setUsers(users.filter((u) => u._id !== userId));
+      } else {
+        alert(data.error || "Failed to delete user");
+      }
+    } catch (err) {
+      alert("An unexpected error occurred while deleting the user");
+    }
+  };
+
   if (loading || userLoading) return <div className="p-4 text-center">Loading users...</div>;
   
   if (!user || user.role !== "admin") {
@@ -181,12 +202,22 @@ export default function UsersTable() {
                       {user.designation || "N/A"}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-gray-500 text-end text-theme-sm dark:text-gray-400">
-                      <button
-                        onClick={() => handleEditClick(user)}
-                        className="text-brand-500 hover:text-brand-600 transition-colors"
-                      >
-                        Edit
-                      </button>
+                      <div className="flex items-center justify-end gap-3">
+                        <button
+                          onClick={() => handleEditClick(user)}
+                          className="text-brand-500 hover:text-brand-600 transition-colors"
+                        >
+                          Edit
+                        </button>
+                        {user.role !== "admin" && (
+                          <button
+                            onClick={() => handleDelete(user._id)}
+                            className="text-red-500 hover:text-red-600 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

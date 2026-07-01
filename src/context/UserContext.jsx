@@ -14,6 +14,16 @@ export function UserProvider({ children }) {
         const data = await res.json();
         setUser(data.user);
       } else {
+        if (res.status === 401 || res.status === 404) {
+          try {
+            await fetch("/api/auth/logout", { method: "POST" });
+            if (typeof window !== "undefined" && window.location.pathname !== "/signin") {
+              window.location.href = "/signin";
+            }
+          } catch (e) {
+            console.error("Auto-logout failed", e);
+          }
+        }
         setUser(null);
       }
     } catch (err) {

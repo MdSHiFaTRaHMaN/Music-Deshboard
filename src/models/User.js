@@ -22,7 +22,7 @@ const UserSchema = new mongoose.Schema(
     },
     avatar: {
       type: String,
-      default: "/images/user/owner.jpg",
+      default: "",
     },
     status: {
       type: String,
