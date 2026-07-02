@@ -6,9 +6,7 @@ import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import { useUser } from "../context/UserContext";
 import { BiPurchaseTag } from "react-icons/bi";
-import { LuUsersRound } from "react-icons/lu";
 import {
-  ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
 } from "../icons/index";
@@ -27,7 +25,7 @@ const navItems = [
   },
   {
     icon: <BiPurchaseTag className="text-orange-500 text-xl" />,
-    name: "Orders",
+    name: "Shopify Orders",
     path: "/orders",
   },
   {

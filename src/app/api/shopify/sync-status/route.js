@@ -3,6 +3,8 @@ import dbConnect from "@/lib/mongoose";
 import Order from "@/models/Order";
 import { getSettings } from "@/lib/getSettings";
 import { jwtVerify } from "jose";
+import { sendKlaviyoMusicDelivery } from "@/lib/klaviyo";
+import { fulfillShopifyOrder } from "@/lib/shopifyFulfill";
 
 export async function POST(request) {
   try {
@@ -62,28 +64,59 @@ export async function POST(request) {
         if (musicIdProp && musicIdProp.value) {
           const result = await Order.findOneAndUpdate(
             { musicId: musicIdProp.value },
-            { $set: { status: financialStatus } },
+            { $set: { status: financialStatus, shopifyOrderId: shopifyOrder.id } },
             { new: true }
           );
           if (result) {
             musicIdFound = true;
             updatedCount++;
             updates.push({ musicId: musicIdProp.value, status: financialStatus });
+
+            // ── Klaviyo Automation & Auto Fulfill ──
+            if (financialStatus === "paid" && !result.deliveryEmailSent) {
+              const klaviyoSuccess = await sendKlaviyoMusicDelivery(
+                settings.klaviyoApiKey,
+                shopifyOrder.email || result.email,
+                result
+              );
+
+              if (klaviyoSuccess) {
+                await Order.updateOne({ _id: result._id }, { $set: { deliveryEmailSent: true } });
+                await fulfillShopifyOrder(shopifyOrder.id, settings);
+              }
+            }
           }
         }
       }
 
       if (!musicIdFound && shopifyOrder.email) {
-        const result = await Order.updateMany(
-          {
-            email: shopifyOrder.email,
-            status: { $in: ["in_cart", "created", "pending_payment"] },
-          },
-          { $set: { status: financialStatus } }
-        );
-        if (result.modifiedCount > 0) {
-          updatedCount += result.modifiedCount;
-          updates.push({ email: shopifyOrder.email, status: financialStatus, count: result.modifiedCount });
+        const fallbackOrders = await Order.find({
+          email: shopifyOrder.email,
+          status: { $in: ["in_cart", "created", "pending_payment", "pending"] },
+        });
+
+        for (const fOrder of fallbackOrders) {
+          fOrder.status = financialStatus;
+          fOrder.shopifyOrderId = shopifyOrder.id;
+          await fOrder.save();
+          updatedCount++;
+
+          // ── Klaviyo Automation & Auto Fulfill ──
+          if (financialStatus === "paid" && !fOrder.deliveryEmailSent) {
+            const klaviyoSuccess = await sendKlaviyoMusicDelivery(
+              settings.klaviyoApiKey,
+              shopifyOrder.email,
+              fOrder
+            );
+
+            if (klaviyoSuccess) {
+              await Order.updateOne({ _id: fOrder._id }, { $set: { deliveryEmailSent: true } });
+              await fulfillShopifyOrder(shopifyOrder.id, settings);
+            }
+          }
+        }
+        if (fallbackOrders.length > 0) {
+          updates.push({ email: shopifyOrder.email, status: financialStatus, count: fallbackOrders.length });
         }
       }
     }

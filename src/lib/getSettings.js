@@ -80,6 +80,7 @@ export async function getSettings() {
     notificationEmail: settings?.notificationEmail || "",
     contactPhone: settings?.contactPhone || "",
     monthlyTarget: settings?.monthlyTarget || 20000,
+    klaviyoApiKey: settings?.klaviyoApiKey || process.env.KLAVIYO_API_KEY || "",
   };
   cacheTime = now;
 

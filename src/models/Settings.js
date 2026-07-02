@@ -12,6 +12,7 @@ const SettingsSchema = new mongoose.Schema(
     notificationEmail: { type: String, default: "" },
     contactPhone: { type: String, default: "" },
     monthlyTarget: { type: Number, default: 20000 },
+    klaviyoApiKey: { type: String, default: "" },
   },
   { timestamps: true }
 );

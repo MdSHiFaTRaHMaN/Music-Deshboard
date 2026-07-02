@@ -46,6 +46,14 @@ const OrderSchema = new mongoose.Schema(
       index: true, // The Shopify product this order/song was generated against
     },
     shopifyVariantId: String, // The variant added to the Shopify cart
+    shopifyOrderId: {
+      type: String,
+      index: true, // To track and fulfill specific orders
+    },
+    deliveryEmailSent: {
+      type: Boolean,
+      default: false,
+    },
     status: {
       type: String,
       default: "created", // Initial state when generated but not added to cart

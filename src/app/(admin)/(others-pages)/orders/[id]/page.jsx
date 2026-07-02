@@ -139,7 +139,7 @@ export default async function ShopifyOrderDetailsPage({ params }) {
         {/* Left: Main Info */}
         <div className="xl:col-span-2 space-y-6">
           {/* Fulfillment Manager */}
-          {/* <FulfillmentManager orderId={orderInfo.id} currentStatus={orderInfo.fulfillment_status} /> */}
+          <FulfillmentManager orderId={orderInfo.id} currentStatus={orderInfo.fulfillment_status} />
 
           {/* Order Items */}
           <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">

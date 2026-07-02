@@ -59,7 +59,10 @@ export async function POST(request, { params }) {
     const fulfillmentOrders = fulfillmentOrdersData.fulfillment_orders;
 
     if (!fulfillmentOrders || fulfillmentOrders.length === 0) {
-      return NextResponse.json({ error: "No fulfillment orders found for this order", debug_shopify_response: fulfillmentOrdersData }, { status: 404 });
+      return NextResponse.json({ 
+        error: "No fulfillment orders found. If this is a digital product, Shopify requires 'Requires shipping' to be enabled on the product to fulfill it via API.", 
+        debug_shopify_response: fulfillmentOrdersData 
+      }, { status: 404 });
     }
 
     // Find a fulfillable order

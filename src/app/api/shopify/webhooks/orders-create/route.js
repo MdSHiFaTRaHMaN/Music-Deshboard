@@ -4,6 +4,8 @@ import dbConnect from "@/lib/mongoose";
 import Notification from "@/models/Notification";
 import Order from "@/models/Order";
 import { getSettings } from "@/lib/getSettings";
+import { sendKlaviyoMusicDelivery } from "@/lib/klaviyo";
+import { fulfillShopifyOrder } from "@/lib/shopifyFulfill";
 
 export async function POST(request) {
   try {
@@ -51,11 +53,26 @@ export async function POST(request) {
           if (musicIdProp && musicIdProp.value) {
             const result = await Order.findOneAndUpdate(
               { musicId: musicIdProp.value },
-              { $set: { status: newStatus } }
+              { $set: { status: newStatus, shopifyOrderId: orderData.id } },
+              { new: true }
             );
             if (result) {
               updated = true;
               console.log(`[Shopify Webhook] Updated music ${musicIdProp.value} → ${newStatus}`);
+              
+              // ── Klaviyo Automation & Auto Fulfill ──
+              if (newStatus === "paid" && !result.deliveryEmailSent) {
+                const klaviyoSuccess = await sendKlaviyoMusicDelivery(
+                  settings.klaviyoApiKey,
+                  orderData.email || result.email,
+                  result
+                );
+
+                if (klaviyoSuccess) {
+                  await Order.updateOne({ _id: result._id }, { $set: { deliveryEmailSent: true } });
+                  await fulfillShopifyOrder(orderData.id, settings);
+                }
+              }
             }
           }
         }
@@ -63,15 +80,30 @@ export async function POST(request) {
 
       // Fallback: if no musicId property found, try matching by customer email
       if (!updated && orderData.email) {
-        const updateResult = await Order.updateMany(
-          {
-            email: orderData.email,
-            status: { $in: ["in_cart", "created", "pending_payment"] }
-          },
-          { $set: { status: newStatus } }
-        );
-        if (updateResult.modifiedCount > 0) {
-          console.log(`[Shopify Webhook] Fallback: updated ${updateResult.modifiedCount} orders for ${orderData.email} → ${newStatus}`);
+        const fallbackOrders = await Order.find({
+          email: orderData.email,
+          status: { $in: ["in_cart", "created", "pending_payment", "pending"] },
+        });
+
+        for (const fOrder of fallbackOrders) {
+          fOrder.status = newStatus;
+          fOrder.shopifyOrderId = orderData.id;
+          await fOrder.save();
+          console.log(`[Shopify Webhook] Fallback: updated ${fOrder._id} for ${orderData.email} → ${newStatus}`);
+
+          // ── Klaviyo Automation & Auto Fulfill ──
+          if (newStatus === "paid" && !fOrder.deliveryEmailSent) {
+            const klaviyoSuccess = await sendKlaviyoMusicDelivery(
+              settings.klaviyoApiKey,
+              orderData.email,
+              fOrder
+            );
+
+            if (klaviyoSuccess) {
+              await Order.updateOne({ _id: fOrder._id }, { $set: { deliveryEmailSent: true } });
+              await fulfillShopifyOrder(orderData.id, settings);
+            }
+          }
         }
       }
     }

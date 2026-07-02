@@ -23,6 +23,7 @@ export default function SettingsPage() {
     sunoApiKey: "",
     notificationEmail: "",
     contactPhone: "",
+    klaviyoApiKey: "",
   });
 
   useEffect(() => {
@@ -43,6 +44,7 @@ export default function SettingsPage() {
           sunoApiKey: data.sunoApiKey || "",
           notificationEmail: data.notificationEmail || "",
           contactPhone: data.contactPhone || "",
+          klaviyoApiKey: data.klaviyoApiKey || "",
         };
         setFormData(newFormData);
         setInitialData(newFormData);
@@ -185,6 +187,25 @@ export default function SettingsPage() {
                 value={formData.sunoApiKey}
                 onChange={handleChange}
                 placeholder="Enter Suno API Key"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Klaviyo Integration Settings */}
+        <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6 bg-white dark:bg-white/[0.03]">
+          <h4 className="mb-6 text-lg font-semibold text-gray-800 dark:text-white/90">
+            Klaviyo Integration
+          </h4>
+          <div className="grid grid-cols-1 gap-6">
+            <div className="col-span-1">
+              <Label>Klaviyo Private API Key</Label>
+              <Input
+                type="password"
+                name="klaviyoApiKey"
+                value={formData.klaviyoApiKey}
+                onChange={handleChange}
+                placeholder="pk_..."
               />
             </div>
           </div>

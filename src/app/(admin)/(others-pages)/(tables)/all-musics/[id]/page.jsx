@@ -7,6 +7,7 @@ import Badge from "@/components/ui/badge/Badge";
 import { notFound } from "next/navigation";
 import { getSettings } from "@/lib/getSettings";
 import SyncMusicButton from "@/components/common/SyncMusicButton";
+import DeleteOrderButton from "@/components/common/DeleteOrderButton";
 
 export const dynamic = "force-dynamic";
 
@@ -218,6 +219,7 @@ export default async function MusicDetailPage({ params }) {
           >
             ← Back to All Musics
           </Link>
+          <DeleteOrderButton orderId={serialized._id} redirectUrl="/all-musics" customerEmail={serialized.email} />
         </div>
       </div>
     </div>
