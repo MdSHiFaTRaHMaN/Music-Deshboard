@@ -20,6 +20,9 @@ export default function FormElements() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const [shopifyProducts, setShopifyProducts] = useState([]);
+  const [fetchingProducts, setFetchingProducts] = useState(false);
+
   // For adding new simple texts
   const [newInputs, setNewInputs] = useState({
     occasions: "",
@@ -47,6 +50,24 @@ export default function FormElements() {
       }
     };
     fetchOptions();
+  }, []);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setFetchingProducts(true);
+      try {
+        const res = await fetch("/api/shopify/products");
+        const json = await res.json();
+        if (json.success && json.products) {
+          setShopifyProducts(json.products);
+        }
+      } catch (err) {
+        console.error("Error fetching shopify products", err);
+      } finally {
+        setFetchingProducts(false);
+      }
+    };
+    fetchProducts();
   }, []);
 
   const handleSave = async () => {
@@ -234,34 +255,60 @@ export default function FormElements() {
                   <label className="text-xs text-gray-500">Tagline (Optional)</label>
                   <Input type="text" value={pkg.tagline || ""} onChange={(e) => handlePackageChange(pIdx, "tagline", e.target.value)} />
                 </div>
-                <div>
-                  <label className="text-xs text-gray-500">Image URL</label>
-                  <Input type="text" value={pkg.image} onChange={(e) => handlePackageChange(pIdx, "image", e.target.value)} />
-                </div>
+
 
                 <div className="rounded-lg border border-dashed border-gray-300 p-3 dark:border-gray-600">
-                  <p className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">Shopify Linking (optional)</p>
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">Shopify Linking (optional)</p>
+                    {fetchingProducts && <span className="text-xs text-brand-500">Loading products...</span>}
+                  </div>
                   <p className="mb-3 text-xs text-gray-400">
                     If set, choosing this package on the storefront adds this exact product/variant to the cart as its own line item, with its own price — instead of just a text label on the base song product.
                   </p>
-                  <div className="mb-2">
-                    <label className="text-xs text-gray-500">Shopify Product ID</label>
-                    <Input
-                      type="text"
-                      value={pkg.shopifyProductId || ""}
-                      onChange={(e) => handlePackageChange(pIdx, "shopifyProductId", e.target.value)}
-                      placeholder="e.g. 8123456789012"
-                    />
+                  
+                  <div className="mb-4">
+                    <label className="text-xs text-gray-500 block mb-1">Select Shopify Product</label>
+                    <select 
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-500 dark:border-gray-800 dark:bg-white/5 dark:text-white/90"
+                      onChange={(e) => {
+                        const selectedVal = e.target.value;
+                        if (!selectedVal) {
+                          handlePackageChange(pIdx, "shopifyProductId", "");
+                          handlePackageChange(pIdx, "shopifyVariantId", "");
+                          return;
+                        }
+                        const prod = shopifyProducts.find(p => p.id === selectedVal);
+                        if (prod) {
+                          handlePackageChange(pIdx, "shopifyProductId", prod.productId);
+                          handlePackageChange(pIdx, "shopifyVariantId", prod.variantId);
+                          handlePackageChange(pIdx, "title", prod.displayTitle);
+                          if (prod.price) handlePackageChange(pIdx, "price", `€${prod.price}`);
+                          handlePackageChange(pIdx, "image", prod.image || "");
+                        }
+                      }}
+                      value={shopifyProducts.find(p => p.productId === pkg.shopifyProductId && p.variantId === pkg.shopifyVariantId)?.id || ""}
+                    >
+                      <option value="">-- None --</option>
+                      {shopifyProducts.map(prod => (
+                        <option key={prod.id} value={prod.id}>
+                          {prod.displayTitle}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <div>
-                    <label className="text-xs text-gray-500">Shopify Variant ID</label>
-                    <Input
-                      type="text"
-                      value={pkg.shopifyVariantId || ""}
-                      onChange={(e) => handlePackageChange(pIdx, "shopifyVariantId", e.target.value)}
-                      placeholder="e.g. 44123456789012"
-                    />
-                  </div>
+
+                  {/* Visual indication of selected product */}
+                  {pkg.shopifyProductId && (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
+                      {pkg.image && (
+                        <img src={pkg.image} alt={pkg.title} className="w-12 h-12 rounded object-cover border border-gray-200 dark:border-gray-600" />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{pkg.title}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Linked to Shopify Variant: {pkg.shopifyVariantId}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="pt-2">
