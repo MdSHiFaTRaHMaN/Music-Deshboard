@@ -9,14 +9,23 @@
 export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, order) {
   if (!klaviyoApiKey || !email) {
     console.error("[Klaviyo] Missing API key or email.");
-    return false;
+    return { success: false, error: "Missing API key or email in request." };
   }
 
   // Ensure we have generated tracks to send
   const tracks = order.musicTracks || [];
   if (tracks.length === 0 || !tracks[0].audioUrl) {
-    console.error("[Klaviyo] Order has no generated audio URLs yet. Cannot send delivery email.");
-    return false;
+    console.error("[Klaviyo] No complete music tracks to send.");
+    return { success: false, error: "No completed music tracks found for this order." };
+  }
+
+  // Find the track the user selected, or fallback to the first track
+  let selectedTrack = tracks[0];
+  if (order.selectedDemo) {
+    const matchedTrack = tracks.find(t => t.id === order.selectedDemo);
+    if (matchedTrack) {
+      selectedTrack = matchedTrack;
+    }
   }
 
   const payload = {
@@ -24,15 +33,27 @@ export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, order) {
       type: "event",
       attributes: {
         profile: {
-          email: email,
+          data: {
+            type: "profile",
+            attributes: {
+              first_name: order?.name?.split(" ")[0] || "",
+              last_name: order?.name?.split(" ")[1] || "",
+              email: email,
+            }
+          }
         },
         metric: {
-          name: "Music_Delivered",
+          data: {
+            type: "metric",
+            attributes: {
+              name: "Music_Delivered",
+            }
+          }
         },
         properties: {
           musicId: order.musicId || "",
           shopifyOrderId: order.shopifyOrderId || "",
-          primaryAudioUrl: tracks[0].audioUrl,
+          primaryAudioUrl: selectedTrack.audioUrl,
           allTracks: tracks.map((t) => ({
             title: t.title || "Custom Song",
             audioUrl: t.audioUrl,
@@ -63,13 +84,13 @@ export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, order) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("[Klaviyo] Failed to send event:", response.status, errorText);
-      return false;
+      return { success: false, error: errorText || `HTTP Error ${response.status}` };
     }
 
     console.log(`[Klaviyo] Successfully sent Music_Delivered event to ${email}`);
-    return true;
+    return { success: true };
   } catch (error) {
     console.error("[Klaviyo] Network error sending event:", error);
-    return false;
+    return { success: false, error: error.message || "Network error" };
   }
 }

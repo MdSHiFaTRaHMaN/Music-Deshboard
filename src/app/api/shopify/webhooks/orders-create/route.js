@@ -62,13 +62,13 @@ export async function POST(request) {
               
               // ── Klaviyo Automation & Auto Fulfill ──
               if (newStatus === "paid" && !result.deliveryEmailSent) {
-                const klaviyoSuccess = await sendKlaviyoMusicDelivery(
+                const klaviyoResult = await sendKlaviyoMusicDelivery(
                   settings.klaviyoApiKey,
                   orderData.email || result.email,
                   result
                 );
 
-                if (klaviyoSuccess) {
+                if (klaviyoResult?.success) {
                   await Order.updateOne({ _id: result._id }, { $set: { deliveryEmailSent: true } });
                   await fulfillShopifyOrder(orderData.id, settings);
                 }
@@ -93,13 +93,13 @@ export async function POST(request) {
 
           // ── Klaviyo Automation & Auto Fulfill ──
           if (newStatus === "paid" && !fOrder.deliveryEmailSent) {
-            const klaviyoSuccess = await sendKlaviyoMusicDelivery(
+            const klaviyoResult = await sendKlaviyoMusicDelivery(
               settings.klaviyoApiKey,
               orderData.email,
               fOrder
             );
 
-            if (klaviyoSuccess) {
+            if (klaviyoResult?.success) {
               await Order.updateOne({ _id: fOrder._id }, { $set: { deliveryEmailSent: true } });
               await fulfillShopifyOrder(orderData.id, settings);
             }

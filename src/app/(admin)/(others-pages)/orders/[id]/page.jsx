@@ -9,6 +9,7 @@ import dbConnect from "@/lib/mongoose";
 import Order from "@/models/Order";
 import OrderEmailGenerator from "@/components/ecommerce/OrderEmailGenerator";
 import FulfillmentManager from "@/components/ecommerce/FulfillmentManager";
+import KlaviyoTriggerButton from "@/components/ecommerce/KlaviyoTriggerButton";
 import { FiMusic, FiDownload } from "react-icons/fi";
 
 export const metadata = {
@@ -222,6 +223,9 @@ export default async function ShopifyOrderDetailsPage({ params }) {
 
             {/* Generate Email Section */}
             <OrderEmailGenerator order={{ ...orderInfo, email: bestEmail }} matchedMusicInfo={matchedMusicInfo} />
+
+            {/* Klaviyo Manual Trigger */}
+            <KlaviyoTriggerButton shopifyOrderId={orderInfo.id} email={bestEmail} />
 
           </div>
 
