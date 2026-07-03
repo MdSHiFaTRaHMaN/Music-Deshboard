@@ -19,17 +19,20 @@ const defaultOptions = {
     {
       id: "muziekbox", title: "Muziekbox", price: "€59.95", tagline: "Perfect as a gift!",
       features: ["Beautiful physical music box", "High quality audio", "Fast shipping"],
-      image: "https://placehold.co/400x400/f8f9fa/101828?text=Muziekbox"
+      image: "https://placehold.co/400x400/f8f9fa/101828?text=Muziekbox",
+      shopifyProductId: "", shopifyVariantId: ""
     },
     {
       id: "digitaal", title: "Digitaal Liedje", price: "€29.95", tagline: "Ideal for a quick surprise",
       features: ["Digital MP3 download", "Custom lyrics included", "Direct in your inbox"],
-      image: "https://placehold.co/400x400/f8f9fa/101828?text=Digitaal+Liedje"
+      image: "https://placehold.co/400x400/f8f9fa/101828?text=Digitaal+Liedje",
+      shopifyProductId: "", shopifyVariantId: ""
     },
     {
       id: "video", title: "Video + Liedje", price: "€69.95", tagline: "New!",
       features: ["Personalized video", "Digital MP3 included", "Perfect for sharing"],
-      image: "https://placehold.co/400x400/f8f9fa/101828?text=Video+%2B+Liedje"
+      image: "https://placehold.co/400x400/f8f9fa/101828?text=Video+%2B+Liedje",
+      shopifyProductId: "", shopifyVariantId: ""
     }
   ]
 };

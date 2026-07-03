@@ -6,7 +6,9 @@ const packageSchema = new mongoose.Schema({
   price: { type: String, required: true },
   tagline: { type: String },
   features: [{ type: String }],
-  image: { type: String }
+  image: { type: String },
+  shopifyProductId: { type: String },
+  shopifyVariantId: { type: String }
 });
 
 const generateOptionSchema = new mongoose.Schema(

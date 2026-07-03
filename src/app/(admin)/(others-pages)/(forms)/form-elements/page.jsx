@@ -98,6 +98,8 @@ export default function FormElements() {
       tagline: "",
       features: ["Feature 1"],
       image: "https://placehold.co/400x400/f8f9fa/101828?text=New+Package",
+      shopifyProductId: "",
+      shopifyVariantId: "",
     };
     setOptions((prev) => ({
       ...prev,
@@ -235,6 +237,31 @@ export default function FormElements() {
                 <div>
                   <label className="text-xs text-gray-500">Image URL</label>
                   <Input type="text" value={pkg.image} onChange={(e) => handlePackageChange(pIdx, "image", e.target.value)} />
+                </div>
+
+                <div className="rounded-lg border border-dashed border-gray-300 p-3 dark:border-gray-600">
+                  <p className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">Shopify Linking (optional)</p>
+                  <p className="mb-3 text-xs text-gray-400">
+                    If set, choosing this package on the storefront adds this exact product/variant to the cart as its own line item, with its own price — instead of just a text label on the base song product.
+                  </p>
+                  <div className="mb-2">
+                    <label className="text-xs text-gray-500">Shopify Product ID</label>
+                    <Input
+                      type="text"
+                      value={pkg.shopifyProductId || ""}
+                      onChange={(e) => handlePackageChange(pIdx, "shopifyProductId", e.target.value)}
+                      placeholder="e.g. 8123456789012"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500">Shopify Variant ID</label>
+                    <Input
+                      type="text"
+                      value={pkg.shopifyVariantId || ""}
+                      onChange={(e) => handlePackageChange(pIdx, "shopifyVariantId", e.target.value)}
+                      placeholder="e.g. 44123456789012"
+                    />
+                  </div>
                 </div>
                 
                 <div className="pt-2">
