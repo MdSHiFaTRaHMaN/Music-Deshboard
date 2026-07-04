@@ -3,30 +3,51 @@
  * 
  * @param {string} klaviyoApiKey - The private API key for Klaviyo
  * @param {string} email - The customer's email address
- * @param {object} order - The full order object
- * @returns {boolean} - true if successful, false otherwise
+ * @param {Array|object} orders - An array of completed order objects (or a single object for backwards compatibility)
+ * @returns {object} - { success: boolean, error?: string }
  */
-export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, order) {
+export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, orders) {
   if (!klaviyoApiKey || !email) {
     console.error("[Klaviyo] Missing API key or email.");
     return { success: false, error: "Missing API key or email in request." };
   }
 
-  // Ensure we have generated tracks to send
-  const tracks = order.musicTracks || [];
-  if (tracks.length === 0 || !tracks[0].audioUrl) {
-    console.error("[Klaviyo] No complete music tracks to send.");
-    return { success: false, error: "No completed music tracks found for this order." };
+  // Normalize to array
+  const orderList = Array.isArray(orders) ? orders : [orders];
+  if (orderList.length === 0) {
+    return { success: false, error: "No orders provided." };
   }
 
-  // Find the track the user selected, or fallback to the first track
-  let selectedTrack = tracks[0];
-  if (order.selectedDemo) {
-    const matchedTrack = tracks.find(t => t.id === order.selectedDemo);
-    if (matchedTrack) {
-      selectedTrack = matchedTrack;
-    }
+  // Filter for valid orders with tracks
+  const validOrders = orderList.filter(o => o.musicTracks && o.musicTracks.length > 0 && o.musicTracks[0].audioUrl);
+  if (validOrders.length === 0) {
+    console.error("[Klaviyo] No complete music tracks to send.");
+    return { success: false, error: "No completed music tracks found for these orders." };
   }
+
+  // The first valid order acts as the base for order-level properties
+  const baseOrder = validOrders[0];
+
+  const items = validOrders.map(order => {
+    let selectedTrack = order.musicTracks[0];
+    if (order.selectedDemo) {
+      const matchedTrack = order.musicTracks.find(t => t.id === order.selectedDemo);
+      if (matchedTrack) selectedTrack = matchedTrack;
+    }
+
+    return {
+      musicId: order.musicId || "",
+      occasion: order.occasion || "",
+      forWho: order.forWho || "",
+      genre: order.genre || "",
+      orderNotes: order.orderNotes || "",
+      primaryAudioUrl: selectedTrack.audioUrl || "",
+      title: selectedTrack.title || order.musicTracks[0]?.title || "Custom Song",
+      imageUrl: selectedTrack.imageUrl || order.musicTracks[0]?.imageUrl || "",
+    };
+  });
+
+  console.log(`[Klaviyo] Preparing to send email to ${email}. Number of items: ${items.length}`);
 
   const payload = {
     data: {
@@ -36,8 +57,8 @@ export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, order) {
           data: {
             type: "profile",
             attributes: {
-              first_name: order?.name?.split(" ")[0] || "",
-              last_name: order?.name?.split(" ")[1] || "",
+              first_name: baseOrder?.name?.split(" ")[0] || "",
+              last_name: baseOrder?.name?.split(" ")[1] || "",
               email: email,
             }
           }
@@ -51,18 +72,8 @@ export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, order) {
           }
         },
         properties: {
-          musicId: order.musicId || "",
-          shopifyOrderId: order.shopifyOrderId || "",
-          primaryAudioUrl: selectedTrack.audioUrl,
-          allTracks: tracks.map((t) => ({
-            title: t.title || "Custom Song",
-            audioUrl: t.audioUrl,
-            imageUrl: t.imageUrl || "",
-          })),
-          orderNotes: order.orderNotes || "",
-          forWho: order.forWho || "",
-          occasion: order.occasion || "",
-          genre: order.genre || "",
+          shopifyOrderId: baseOrder.shopifyOrderId || "",
+          items: items,
         },
         time: new Date().toISOString(),
       },

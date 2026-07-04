@@ -36,12 +36,16 @@ export async function fulfillShopifyOrder(orderId, settings) {
     const fulfillmentOrders = fulfillmentOrdersData.fulfillment_orders;
 
     if (!fulfillmentOrders || fulfillmentOrders.length === 0) {
-      console.error("[Shopify Fulfill] No fulfillment orders found for this order. Ensure 'Requires shipping' is enabled on the Shopify product.");
-      return { success: false, message: "No fulfillment orders found. Ensure 'Requires shipping' is enabled on the product." };
+      console.error("[Shopify Fulfill] No fulfillment orders found for this order.");
+      console.error("[Shopify Fulfill] THIS USUALLY MEANS YOUR SHOPIFY APP IS MISSING PERMISSIONS!");
+      console.error("[Shopify Fulfill] Please go to Shopify Admin > Settings > Apps > Custom Apps > Your App > API Credentials > Edit, and add 'write_merchant_managed_fulfillment_orders' and 'read_merchant_managed_fulfillment_orders' scopes.");
+      return { success: false, message: "Missing 'merchant_managed_fulfillment_orders' API permission in Shopify App." };
     }
 
     // Find a fulfillable order
-    const fulfillableOrder = fulfillmentOrders.find(fo => fo.status === 'OPEN' || fo.status === 'IN_PROGRESS');
+    const fulfillableOrder = fulfillmentOrders.find(fo => 
+      fo.status.toUpperCase() === 'OPEN' || fo.status.toUpperCase() === 'IN_PROGRESS'
+    );
     if (!fulfillableOrder) {
       console.warn("[Shopify Fulfill] No open fulfillment orders available. It might already be fulfilled.");
       return { success: false, message: "Already fulfilled or no open fulfillments" };

@@ -71,52 +71,49 @@ export async function POST(request) {
             musicIdFound = true;
             updatedCount++;
             updates.push({ musicId: musicIdProp.value, status: financialStatus });
-
-            // ── Klaviyo Automation & Auto Fulfill ──
-            if (financialStatus === "paid" && !result.deliveryEmailSent) {
-              const klaviyoResult = await sendKlaviyoMusicDelivery(
-                settings.klaviyoApiKey,
-                shopifyOrder.email || result.email,
-                result
-              );
-
-              if (klaviyoResult?.success) {
-                await Order.updateOne({ _id: result._id }, { $set: { deliveryEmailSent: true } });
-                await fulfillShopifyOrder(shopifyOrder.id, settings);
-              }
-            }
           }
         }
       }
 
       if (!musicIdFound && shopifyOrder.email) {
+        const itemsToFulfill = shopifyOrder.line_items ? shopifyOrder.line_items.length : 1;
         const fallbackOrders = await Order.find({
           email: shopifyOrder.email,
           status: { $in: ["in_cart", "created", "pending_payment", "pending"] },
-        });
+        }).sort({ createdAt: -1 }).limit(itemsToFulfill);
 
         for (const fOrder of fallbackOrders) {
           fOrder.status = financialStatus;
           fOrder.shopifyOrderId = shopifyOrder.id;
           await fOrder.save();
           updatedCount++;
-
-          // ── Klaviyo Automation & Auto Fulfill ──
-          if (financialStatus === "paid" && !fOrder.deliveryEmailSent) {
-            const klaviyoResult = await sendKlaviyoMusicDelivery(
-              settings.klaviyoApiKey,
-              shopifyOrder.email,
-              fOrder
-            );
-
-            if (klaviyoResult?.success) {
-              await Order.updateOne({ _id: fOrder._id }, { $set: { deliveryEmailSent: true } });
-              await fulfillShopifyOrder(shopifyOrder.id, settings);
-            }
-          }
         }
         if (fallbackOrders.length > 0) {
           updates.push({ email: shopifyOrder.email, status: financialStatus, count: fallbackOrders.length });
+        }
+      }
+
+      // ── Bundled Klaviyo Automation & Auto Fulfill ──
+      if (financialStatus === "paid") {
+        const localOrders = await Order.find({ shopifyOrderId: shopifyOrder.id });
+        if (localOrders.length > 0) {
+          const allReady = localOrders.every(o => o.musicTracks && o.musicTracks.length > 0 && o.musicTracks[0].audioUrl);
+          const anyUnsent = localOrders.some(o => !o.deliveryEmailSent);
+
+          if (allReady && anyUnsent) {
+            const klaviyoResult = await sendKlaviyoMusicDelivery(
+              settings.klaviyoApiKey,
+              shopifyOrder.email || localOrders[0].email,
+              localOrders
+            );
+
+            if (klaviyoResult?.success) {
+              await Promise.all(localOrders.map(o => 
+                Order.updateOne({ _id: o._id }, { $set: { deliveryEmailSent: true } })
+              ));
+              await fulfillShopifyOrder(shopifyOrder.id, settings);
+            }
+          }
         }
       }
     }

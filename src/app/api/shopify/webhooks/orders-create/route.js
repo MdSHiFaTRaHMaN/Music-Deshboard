@@ -56,51 +56,49 @@ export async function POST(request) {
               { $set: { status: newStatus, shopifyOrderId: orderData.id } },
               { new: true }
             );
-            if (result) {
-              updated = true;
-              console.log(`[Shopify Webhook] Updated music ${musicIdProp.value} → ${newStatus}`);
-              
-              // ── Klaviyo Automation & Auto Fulfill ──
-              if (newStatus === "paid" && !result.deliveryEmailSent) {
-                const klaviyoResult = await sendKlaviyoMusicDelivery(
-                  settings.klaviyoApiKey,
-                  orderData.email || result.email,
-                  result
-                );
-
-                if (klaviyoResult?.success) {
-                  await Order.updateOne({ _id: result._id }, { $set: { deliveryEmailSent: true } });
-                  await fulfillShopifyOrder(orderData.id, settings);
-                }
+              if (result) {
+                updated = true;
+                console.log(`[Shopify Webhook] Updated music ${musicIdProp.value} → ${newStatus}`);
               }
-            }
           }
         }
       }
 
       // Fallback: if no musicId property found, try matching by customer email
       if (!updated && orderData.email) {
+        // Only fetch as many fallback orders as there are line items in this Shopify order
+        const itemsToFulfill = orderData.line_items ? orderData.line_items.length : 1;
         const fallbackOrders = await Order.find({
           email: orderData.email,
           status: { $in: ["in_cart", "created", "pending_payment", "pending"] },
-        });
+        }).sort({ createdAt: -1 }).limit(itemsToFulfill);
 
         for (const fOrder of fallbackOrders) {
           fOrder.status = newStatus;
           fOrder.shopifyOrderId = orderData.id;
           await fOrder.save();
           console.log(`[Shopify Webhook] Fallback: updated ${fOrder._id} for ${orderData.email} → ${newStatus}`);
+        }
+      }
 
-          // ── Klaviyo Automation & Auto Fulfill ──
-          if (newStatus === "paid" && !fOrder.deliveryEmailSent) {
+      // ── Bundled Klaviyo Automation & Auto Fulfill ──
+      if (newStatus === "paid") {
+        const localOrders = await Order.find({ shopifyOrderId: orderData.id });
+        if (localOrders.length > 0) {
+          const allReady = localOrders.every(o => o.musicTracks && o.musicTracks.length > 0 && o.musicTracks[0].audioUrl);
+          const anyUnsent = localOrders.some(o => !o.deliveryEmailSent);
+
+          if (allReady && anyUnsent) {
             const klaviyoResult = await sendKlaviyoMusicDelivery(
               settings.klaviyoApiKey,
-              orderData.email,
-              fOrder
+              orderData.email || localOrders[0].email,
+              localOrders
             );
 
             if (klaviyoResult?.success) {
-              await Order.updateOne({ _id: fOrder._id }, { $set: { deliveryEmailSent: true } });
+              await Promise.all(localOrders.map(o => 
+                Order.updateOne({ _id: o._id }, { $set: { deliveryEmailSent: true } })
+              ));
               await fulfillShopifyOrder(orderData.id, settings);
             }
           }
