@@ -4,9 +4,10 @@
  * @param {string} klaviyoApiKey - The private API key for Klaviyo
  * @param {string} email - The customer's email address
  * @param {Array|object} orders - An array of completed order objects (or a single object for backwards compatibility)
+ * @param {string|number} orderNumber - The human readable order number (e.g. 1013)
  * @returns {object} - { success: boolean, error?: string }
  */
-export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, orders) {
+export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, orders, orderNumber = "") {
   if (!klaviyoApiKey || !email) {
     console.error("[Klaviyo] Missing API key or email.");
     return { success: false, error: "Missing API key or email in request." };
@@ -72,7 +73,7 @@ export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, orders) {
           }
         },
         properties: {
-          shopifyOrderId: baseOrder.shopifyOrderId || "",
+          shopifyOrderId: orderNumber ? `#${orderNumber}` : (baseOrder.shopifyOrderId || ""),
           items: items,
         },
         time: new Date().toISOString(),

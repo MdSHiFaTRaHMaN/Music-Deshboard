@@ -26,7 +26,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { shopifyOrderId, email } = body;
+    const { shopifyOrderId, email, orderNumber } = body;
 
     if (!shopifyOrderId || !email) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -49,7 +49,7 @@ export async function POST(request) {
         return NextResponse.json({ error: "No matching music order found in database" }, { status: 404 });
       }
       
-      const klaviyoResult = await sendKlaviyoMusicDelivery(settings.klaviyoApiKey, email, [fallbackOrder]);
+      const klaviyoResult = await sendKlaviyoMusicDelivery(settings.klaviyoApiKey, email, [fallbackOrder], orderNumber);
       if (!klaviyoResult?.success) return NextResponse.json({ error: `Klaviyo Error: ${klaviyoResult?.error || 'Unknown error'}` }, { status: 500 });
       
       await Order.updateOne({ _id: fallbackOrder._id }, { $set: { deliveryEmailSent: true } });
@@ -63,7 +63,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Cannot send yet: Not all songs in this order have finished generating." }, { status: 400 });
     }
 
-    const klaviyoResult = await sendKlaviyoMusicDelivery(settings.klaviyoApiKey, email, localOrders);
+    const klaviyoResult = await sendKlaviyoMusicDelivery(settings.klaviyoApiKey, email, localOrders, orderNumber);
     
     if (klaviyoResult?.success) {
       // Mark all as sent

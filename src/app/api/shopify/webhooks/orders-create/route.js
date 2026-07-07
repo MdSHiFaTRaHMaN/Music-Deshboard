@@ -93,7 +93,8 @@ export async function POST(request) {
             const klaviyoResult = await sendKlaviyoMusicDelivery(
               settings.klaviyoApiKey,
               orderData.email || localOrders[0].email,
-              localOrders
+              localOrders,
+              orderData.order_number
             );
 
             if (klaviyoResult?.success) {
