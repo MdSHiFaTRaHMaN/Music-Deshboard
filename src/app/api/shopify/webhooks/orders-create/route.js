@@ -14,10 +14,11 @@ export async function POST(request) {
     const shopDomain = request.headers.get("X-Shopify-Shop-Domain");
 
     const settings = await getSettings();
-    const shopifySecret = settings.shopifySecretId;
+    // Allow using a dedicated Webhook Secret from .env, fallback to settings
+    const shopifySecret = process.env.SHOPIFY_WEBHOOK_SECRET || settings.shopifySecretId;
 
     if (!shopifySecret) {
-      console.error("[Shopify Webhook] Shopify Secret ID not configured");
+      console.error("[Shopify Webhook] Shopify Secret ID / Webhook Secret not configured");
       return NextResponse.json({ error: "Configuration missing" }, { status: 500 });
     }
 
