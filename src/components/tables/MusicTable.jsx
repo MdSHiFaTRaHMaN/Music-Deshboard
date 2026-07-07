@@ -11,25 +11,6 @@ import {
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
 
-function handleDownload(url, filename) {
-  fetch(url)
-    .then((res) => res.blob())
-    .then((blob) => {
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = filename || "music.mp3";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(blobUrl);
-    })
-    .catch(() => {
-      // fallback: open in new tab
-      window.open(url, "_blank");
-    });
-}
-
 export default function MusicTable({ orders }) {
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
@@ -64,23 +45,6 @@ export default function MusicTable({ orders }) {
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-      {/* Sync Button */}
-      {/* <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-white/[0.05]">
-        <span className="text-sm text-gray-500 dark:text-gray-400">
-          {syncMsg && <span className={syncMsg.includes("fail") || syncMsg.includes("error") ? "text-red-500" : "text-green-600"}>{syncMsg}</span>}
-        </span>
-        <button
-          onClick={handleSyncShopify}
-          disabled={syncing}
-          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-orange-600 disabled:opacity-60"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="1 4 1 10 7 10" /><polyline points="23 20 23 14 17 14" />
-            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15" />
-          </svg>
-          {syncing ? "Syncing..." : "Sync with Shopify"}
-        </button>
-      </div> */}
       <div className="max-w-full overflow-x-auto">
         <div className="min-w-[1102px]">
           <Table>
