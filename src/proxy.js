@@ -18,6 +18,7 @@ export async function proxy(request) {
     "/signup",
     "/api/auth/login",
     "/api/auth/shopify-callback", // Keep Shopify app authentication working
+    "/api/shopify/webhooks", // Allow Shopify webhooks
     "/_next", // static files
     "/favicon.ico"
   ];
