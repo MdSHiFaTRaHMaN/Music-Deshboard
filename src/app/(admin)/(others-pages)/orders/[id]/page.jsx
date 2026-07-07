@@ -10,6 +10,7 @@ import Order from "@/models/Order";
 import DeliverMusicButton from "@/components/ecommerce/DeliverMusicButton";
 import FulfillmentManager from "@/components/ecommerce/FulfillmentManager";
 import { FiMusic, FiDownload } from "react-icons/fi";
+import ForceDownloadButton from "@/components/common/ForceDownloadButton";
 
 export const metadata = {
   title: "Shopify Order Details | Dashboard",
@@ -193,16 +194,14 @@ export default async function ShopifyOrderDetailsPage({ params }) {
                               className="h-10 w-full max-w-[300px]"
                             />
                             {(matchedMusic.track.audioUrl || matchedMusic.track.streamAudioUrl) && (
-                              <a
-                                href={matchedMusic.track.audioUrl || matchedMusic.track.streamAudioUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                download
+                              <ForceDownloadButton
+                                url={matchedMusic.track.audioUrl || matchedMusic.track.streamAudioUrl}
+                                filename={`${matchedMusic.track.title || "music"}.mp3`}
                                 className="flex items-center gap-1.5 text-sm font-medium text-brand-500 hover:text-brand-600 dark:hover:text-brand-400"
                               >
                                 <FiDownload size={16} />
                                 Download
-                              </a>
+                              </ForceDownloadButton>
                             )}
                           </div>
                         )}

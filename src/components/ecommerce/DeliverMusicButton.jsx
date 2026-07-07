@@ -52,7 +52,7 @@ export default function DeliverMusicButton({ order }) {
           <button
             onClick={triggerKlaviyo}
             disabled={isSending}
-            className="flex items-center gap-2 rounded-lg bg-[#20BFA9] px-4 py-2 text-sm font-medium text-white hover:bg-[#1CA895] transition disabled:opacity-70 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500/80 transition disabled:opacity-70 disabled:cursor-not-allowed"
           >
             <FiSend size={16} />
             {isSending ? "Sending..." : "Deliver Music"}

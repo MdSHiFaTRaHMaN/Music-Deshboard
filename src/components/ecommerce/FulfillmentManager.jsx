@@ -78,11 +78,11 @@ export default function FulfillmentManager({ orderId, currentStatus }) {
           </span>
         </div>
         <div className="relative">
-          <div className="flex items-center rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-900 text-white hover:bg-gray-800">
+          <div className="flex items-center rounded-lg overflow-hidden bg-brand-500 text-white hover:bg-brand-500/80">
             <button
               onClick={handleFulfill}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium border-r border-gray-700 transition disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium border-r border-brand-600 transition disabled:opacity-50"
             >
               {loading ? "Fulfilling..." : "Mark as fulfilled"}
             </button>

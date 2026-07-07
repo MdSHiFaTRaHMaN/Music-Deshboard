@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import { getSettings } from "@/lib/getSettings";
 import SyncMusicButton from "@/components/common/SyncMusicButton";
 import DeleteOrderButton from "@/components/common/DeleteOrderButton";
+import ForceDownloadButton from "@/components/common/ForceDownloadButton";
 
 export const dynamic = "force-dynamic";
 
@@ -158,16 +159,16 @@ export default async function MusicDetailPage({ params }) {
                       {audioUrl && (
                         <div className="flex flex-col gap-2 mt-3">
                           <audio controls src={audioUrl} className="w-full h-10" />
-                          <a
-                            href={audioUrl}
-                            download={`${track.title || "music"}.mp3`}
+                          <ForceDownloadButton
+                            url={audioUrl}
+                            filename={`${track.title || "music"}.mp3`}
                             className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-50 py-2 text-xs font-semibold text-brand-500 transition hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:hover:bg-brand-500/20"
                           >
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
                             </svg>
                             Download this track
-                          </a>
+                          </ForceDownloadButton>
                         </div>
                       )}
                       {track.duration && (
