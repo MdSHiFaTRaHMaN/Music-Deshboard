@@ -54,6 +54,14 @@ const OrderSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    resumeEmailSent: {
+      type: Boolean,
+      default: false,
+    },
+    lastPolledAt: {
+      type: Date,
+      default: Date.now,
+    },
     status: {
       type: String,
       default: "created", // Initial state when generated but not added to cart

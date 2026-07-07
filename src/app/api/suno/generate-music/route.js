@@ -4,6 +4,7 @@ import Order from "@/models/Order";
 import Notification from "@/models/Notification";
 import { getSettings } from "@/lib/getSettings";
 import { withCORS, handleOptions } from "@/lib/cors";
+import { checkAbandonedCart } from "@/lib/abandonedCartChecker";
 
 // Preflight — the browser sends this automatically before the real POST.
 export async function OPTIONS(request) {
@@ -57,7 +58,7 @@ export async function POST(request) {
       );
     }
 
-    const { lyrics, style, title, formData } = await request.json();
+    const { lyrics, style, title, formData, resumeBaseUrl } = await request.json();
 
     if (!lyrics) {
       return withCORS(NextResponse.json({ error: "Lyrics are required" }, { status: 400 }), origin);
@@ -139,6 +140,11 @@ export async function POST(request) {
           type: "added_to_cart",
           link: `/ordered-musics/${newOrder._id}`
         });
+        // Launch background process for abandoned carts
+        if (resumeBaseUrl) {
+          checkAbandonedCart(newOrder._id, taskId, formData.email, resumeBaseUrl);
+        }
+
       } catch (dbErr) {
         console.error("[generate-music] DB Error:", dbErr);
       }

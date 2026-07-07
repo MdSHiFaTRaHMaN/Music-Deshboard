@@ -84,34 +84,42 @@ export async function GET(request) {
       // Check if all tracks have audioUrl and duration
       const allTracksReady = sunoData.length > 0 && sunoData.every(t => t.audioUrl && t.duration);
 
-      // Save to database directly here to avoid exposing audioUrl to client
-      if (isDone && taskId) {
+      // Save to database directly here to avoid exposing audioUrl to client, and update lastPolledAt
+      if (taskId) {
         try {
           await dbConnect();
           const existingOrder = await Order.findOne({ taskId: taskId });
           if (existingOrder) {
-            const currentTracks = existingOrder.musicTracks || [];
-            const needsUpdate = currentTracks.length === 0 || currentTracks.some(t => !t.audioUrl || !t.duration);
+            existingOrder.lastPolledAt = new Date();
+            
+            if (isDone) {
+              const currentTracks = existingOrder.musicTracks || [];
+              const needsUpdate = currentTracks.length === 0 || currentTracks.some(t => !t.audioUrl || !t.duration);
 
-            if (needsUpdate) {
-              existingOrder.musicTracks = sunoData.map(track => ({
-                id: track.id,
-                title: track.title,
-                audioUrl: track.audioUrl,
-                streamAudioUrl: track.streamAudioUrl,
-                imageUrl: track.imageUrl,
-                duration: track.duration,
-                lyrics: track.prompt,
-              }));
+              if (needsUpdate) {
+                existingOrder.musicTracks = sunoData.map(track => ({
+                  id: track.id,
+                  title: track.title,
+                  audioUrl: track.audioUrl,
+                  streamAudioUrl: track.streamAudioUrl,
+                  imageUrl: track.imageUrl,
+                  duration: track.duration,
+                  lyrics: track.prompt,
+                }));
+                await existingOrder.save();
+
+                // Create notification
+                await Notification.create({
+                  title: "Music Generation Complete",
+                  message: `The song for ${existingOrder.email} is ready!`,
+                  type: "music_generated",
+                  link: `/ordered-musics/${existingOrder._id}`
+                });
+              } else {
+                await existingOrder.save();
+              }
+            } else {
               await existingOrder.save();
-
-              // Create notification
-              await Notification.create({
-                title: "Music Generation Complete",
-                message: `The song for ${existingOrder.email} is ready!`,
-                type: "music_generated",
-                link: `/ordered-musics/${existingOrder._id}`
-              });
             }
           }
         } catch (dbErr) {

@@ -19,3 +19,22 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function GET(request, { params }) {
+  try {
+    const { id } = await params;
+    await dbConnect();
+
+    const order = await Order.findById(id).lean();
+
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, order });
+  } catch (error) {
+    console.error("Get order error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+

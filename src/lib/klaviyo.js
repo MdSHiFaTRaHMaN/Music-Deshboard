@@ -106,3 +106,75 @@ export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, orders, ord
     return { success: false, error: error.message || "Network error" };
   }
 }
+
+/**
+ * Sends a custom event to Klaviyo when music is ready (Abandoned Cart Flow).
+ * 
+ * @param {string} klaviyoApiKey - The private API key for Klaviyo
+ * @param {string} email - The customer's email address
+ * @param {object} order - The order object
+ * @param {string} resumeLink - The magic link to resume the cart
+ * @returns {object} - { success: boolean, error?: string }
+ */
+export async function sendKlaviyoMusicReady(klaviyoApiKey, email, order, resumeLink) {
+  if (!klaviyoApiKey || !email || !resumeLink) {
+    console.error("[Klaviyo] Missing API key, email, or resumeLink.");
+    return { success: false, error: "Missing required fields." };
+  }
+
+  const payload = {
+    data: {
+      type: "event",
+      attributes: {
+        profile: {
+          data: {
+            type: "profile",
+            attributes: {
+              email: email,
+            }
+          }
+        },
+        metric: {
+          data: {
+            type: "metric",
+            attributes: {
+              name: "Music_Ready_To_Select",
+            }
+          }
+        },
+        properties: {
+          resumeLink: resumeLink,
+          occasion: order.occasion || "",
+          genre: order.genre || "",
+        },
+        time: new Date().toISOString(),
+      },
+    },
+  };
+
+  try {
+    const response = await fetch("https://a.klaviyo.com/api/events/", {
+      method: "POST",
+      headers: {
+        "Authorization": `Klaviyo-API-Key ${klaviyoApiKey}`,
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "revision": "2024-02-15", 
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[Klaviyo] Failed to send Music_Ready_To_Select event:", response.status, errorText);
+      return { success: false, error: errorText || `HTTP Error ${response.status}` };
+    }
+
+    console.log(`[Klaviyo] Successfully sent Music_Ready_To_Select event to ${email}`);
+    return { success: true };
+  } catch (error) {
+    console.error("[Klaviyo] Network error sending event:", error);
+    return { success: false, error: error.message || "Network error" };
+  }
+}
+
