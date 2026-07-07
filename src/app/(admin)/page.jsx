@@ -3,6 +3,7 @@ import React from "react";
 import MonthlyTarget from "@/components/ecommerce/MonthlyTarget";
 import MonthlySalesChart from "@/components/ecommerce/MonthlySalesChart";
 import RecentOrders from "@/components/ecommerce/RecentOrders";
+import SunoCreditCard from "@/components/ecommerce/SunoCreditCard";
 import { getDashboardMetrics } from "@/lib/getDashboardMetrics";
 
 export const metadata = {
@@ -34,7 +35,9 @@ export default async function Ecommerce() {
           addedToCartTotal={metrics.addedToCartTotal}
           addedToCartThisMonth={metrics.addedToCartThisMonth}
           addedToCartLastMonth={metrics.addedToCartLastMonth}
-        />
+        >
+          <SunoCreditCard />
+        </EcommerceMetrics>
       </div>
 
       {/* Charts Row */}

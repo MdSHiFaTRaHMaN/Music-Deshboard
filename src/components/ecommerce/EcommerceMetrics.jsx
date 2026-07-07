@@ -16,7 +16,8 @@ export const EcommerceMetrics = ({
   addedToCartLastMonth = 0,
   totalOrders = 0,
   generatedOrdersThisMonth = 0,
-  generatedOrdersLastMonth = 0
+  generatedOrdersLastMonth = 0,
+  children
 }) => {
 
   const calculateGrowth = (thisMonth, lastMonth) => {
@@ -33,7 +34,7 @@ export const EcommerceMetrics = ({
   const generatedGrowth = calculateGrowth(generatedOrdersThisMonth, generatedOrdersLastMonth);
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 md:gap-6">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 md:gap-6">
       {/* <!-- Metric Item Start: Customers --> */}
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
         <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
@@ -125,6 +126,8 @@ export const EcommerceMetrics = ({
         </div>
       </div>
       {/* <!-- Metric Item End --> */}
+
+      {children}
     </div>
   );
 };

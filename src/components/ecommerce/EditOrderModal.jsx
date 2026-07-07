@@ -63,7 +63,7 @@ export default function EditOrderModal({ order, onUpdateSuccess }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-lg dark:bg-gray-900">
         <h3 className="mb-5 text-xl font-semibold text-gray-800 dark:text-white/90">
           Edit Order #{order.order_number}
