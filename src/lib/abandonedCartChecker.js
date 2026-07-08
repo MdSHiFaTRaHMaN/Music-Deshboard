@@ -43,10 +43,13 @@ export function checkAbandonedCart(orderId, taskId, email, resumeBaseUrl) {
       const sunoRes = await fetch(`${settings.sunoApiBase}/api/v1/generate/record-info?taskId=${taskId}`);
       const sunoData = await sunoRes.json();
 
-      if ((sunoData.status === "SUCCESS" || sunoData.status === "FIRST_SUCCESS") && sunoData.data && sunoData.data.data) {
-        const tracksRaw = sunoData.data.data;
+      const taskData = sunoData.data;
+      const status = taskData?.status;
+      const tracksRaw = taskData?.response?.sunoData || [];
+
+      if ((status === "SUCCESS" || status === "FIRST_SUCCESS") && tracksRaw.length > 0) {
         // Check if all tracks have their audioUrl populated
-        const allReady = tracksRaw.length > 0 && tracksRaw.every(t => t.audioUrl && t.duration);
+        const allReady = tracksRaw.every(t => t.audioUrl && t.duration);
 
         if (allReady) {
           clearInterval(intervalId); // Stop checking
@@ -135,8 +138,8 @@ export function checkAbandonedCart(orderId, taskId, email, resumeBaseUrl) {
             }, 30 * 60 * 1000); // 30 mins
           }
         }
-      } else if (["CREATE_TASK_FAILED", "GENERATE_AUDIO_FAILED", "CALLBACK_EXCEPTION", "SENSITIVE_WORD_ERROR"].includes(sunoData.status)) {
-        console.log(`[AbandonedCart] Suno generation failed for ${taskId}. Status: ${sunoData.status}`);
+      } else if (status && ["CREATE_TASK_FAILED", "GENERATE_AUDIO_FAILED", "CALLBACK_EXCEPTION", "SENSITIVE_WORD_ERROR"].includes(status)) {
+        console.log(`[AbandonedCart] Suno generation failed for ${taskId}. Status: ${status}`);
         clearInterval(intervalId);
       }
 
