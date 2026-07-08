@@ -192,6 +192,7 @@ export default function GenerateForm() {
             style,
             title,
             formData,
+            resumeBaseUrl: typeof window !== "undefined" ? window.location.origin + window.location.pathname : "",
           }),
         });
         const data = await res.json();

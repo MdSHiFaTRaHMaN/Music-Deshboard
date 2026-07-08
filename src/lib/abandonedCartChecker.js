@@ -40,7 +40,11 @@ export function checkAbandonedCart(orderId, taskId, email, resumeBaseUrl) {
       }
 
       // Check Suno status
-      const sunoRes = await fetch(`${settings.sunoApiBase}/api/v1/generate/record-info?taskId=${taskId}`);
+      const sunoRes = await fetch(`${settings.sunoApiBase}/api/v1/generate/record-info?taskId=${taskId}`, {
+        headers: {
+          "Authorization": `Bearer ${settings.sunoApiKey}`
+        }
+      });
       const sunoData = await sunoRes.json();
 
       const taskData = sunoData.data;
