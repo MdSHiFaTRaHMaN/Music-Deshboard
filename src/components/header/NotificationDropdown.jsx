@@ -107,7 +107,7 @@ export default function NotificationDropdown() {
   };
 
   const getIconColor = (type) => {
-    switch(type) {
+    switch (type) {
       case 'shopify_order': return 'bg-brand-500';
       case 'music_generated': return 'bg-success-500';
       case 'music_started': return 'bg-brand-400';
@@ -123,9 +123,8 @@ export default function NotificationDropdown() {
         onClick={toggleDropdown}
       >
         <span
-          className={`absolute right-0 top-0.5 z-10 h-2 w-2 rounded-full bg-orange-400 ${
-            unreadCount === 0 ? "hidden" : "flex"
-          }`}
+          className={`absolute right-0 top-0.5 z-10 h-2 w-2 rounded-full bg-orange-400 ${unreadCount === 0 ? "hidden" : "flex"
+            }`}
         >
           <span className="absolute inline-flex w-full h-full bg-orange-400 rounded-full opacity-75 animate-ping"></span>
         </span>
@@ -209,39 +208,39 @@ export default function NotificationDropdown() {
                   >
                     <span className="relative block w-10 h-10 rounded-full z-1 max-w-10 bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
                       <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      {notification.type === 'shopify_order' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />}
-                      {notification.type === 'music_generated' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />}
-                      {notification.type === 'music_started' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />}
-                      {notification.type === 'added_to_cart' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />}
-                      {(!['shopify_order', 'music_generated', 'music_started', 'added_to_cart'].includes(notification.type)) && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
-                    </svg>
+                        {notification.type === 'shopify_order' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />}
+                        {notification.type === 'music_generated' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />}
+                        {notification.type === 'music_started' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />}
+                        {notification.type === 'added_to_cart' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />}
+                        {(!['shopify_order', 'music_generated', 'music_started', 'added_to_cart'].includes(notification.type)) && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
+                      </svg>
 
-                    <span className={`absolute bottom-0 right-0 z-10 h-2.5 w-full max-w-2.5 rounded-full border-[1.5px] border-white dark:border-gray-900 ${getIconColor(notification.type)}`}></span>
-                  </span>
+                      <span className={`absolute bottom-0 right-0 z-10 h-2.5 w-full max-w-2.5 rounded-full border-[1.5px] border-white dark:border-gray-900 ${getIconColor(notification.type)}`}></span>
+                    </span>
 
-                  <span className="block w-full">
-                    <span className="mb-1 block text-theme-sm text-gray-500 dark:text-gray-400">
-                      <span className="font-medium text-gray-800 dark:text-white/90">
-                        {notification.title}
+                    <span className="block w-full">
+                      <span className="mb-1 block text-theme-sm text-gray-500 dark:text-gray-400">
+                        <span className="font-medium text-gray-800 dark:text-white/90">
+                          {notification.title}
+                        </span>
+                        <br />
+                        <span>{notification.message}</span>
                       </span>
-                      <br/>
-                      <span>{notification.message}</span>
-                    </span>
 
-                    <span className="flex items-center gap-2 text-gray-500 text-theme-xs dark:text-gray-400">
-                      <span>{timeAgo(notification.createdAt)}</span>
-                      {!notification.isRead && (
-                        <>
-                          <span className="w-1 h-1 bg-brand-400 rounded-full"></span>
-                          <span className="text-brand-500 font-medium text-[10px]">New</span>
-                        </>
-                      )}
+                      <span className="flex items-center gap-2 text-gray-500 text-theme-xs dark:text-gray-400">
+                        <span>{timeAgo(notification.createdAt)}</span>
+                        {!notification.isRead && (
+                          <>
+                            <span className="w-1 h-1 bg-brand-400 rounded-full"></span>
+                            <span className="text-brand-500 font-medium text-[10px]">New</span>
+                          </>
+                        )}
+                      </span>
                     </span>
-                  </span>
-                </DropdownItem>
-              </li>
-            );
-          })
+                  </DropdownItem>
+                </li>
+              );
+            })
           )}
         </ul>
       </Dropdown>
@@ -254,19 +253,19 @@ export default function NotificationDropdown() {
             className="flex items-center gap-3 bg-white dark:bg-gray-800 shadow-theme-lg rounded-xl p-4 border border-gray-100 dark:border-gray-700 pointer-events-auto transform transition-all duration-300 translate-y-0 opacity-100"
           >
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${getIconColor(toast.type)}`}>
-               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  {toast.type === 'shopify_order' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />}
-                  {toast.type === 'music_generated' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />}
-                  {toast.type === 'music_started' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />}
-                  {toast.type === 'added_to_cart' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />}
-                  {(!['shopify_order', 'music_generated', 'music_started', 'added_to_cart'].includes(toast.type)) && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
-               </svg>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                {toast.type === 'shopify_order' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />}
+                {toast.type === 'music_generated' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />}
+                {toast.type === 'music_started' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />}
+                {toast.type === 'added_to_cart' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />}
+                {(!['shopify_order', 'music_generated', 'music_started', 'added_to_cart'].includes(toast.type)) && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
+              </svg>
             </div>
             <div className="flex-1 min-w-[200px] max-w-[250px]">
               <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{toast.title}</h4>
               <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">{toast.message}</p>
             </div>
-            <button 
+            <button
               onClick={() => setToastQueue(prev => prev.filter(t => t._id !== toast._id))}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
