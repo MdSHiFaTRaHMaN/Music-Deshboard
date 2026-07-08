@@ -9,14 +9,27 @@ export default function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [toastQueue, setToastQueue] = useState([]);
+  const lastNotifIds = React.useRef(new Set());
 
   const fetchNotifications = async () => {
     try {
       const res = await fetch("/api/notifications");
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data.notifications || []);
+        const fetchedNotifs = data.notifications || [];
+        setNotifications(fetchedNotifs);
         setUnreadCount(data.unreadCount || 0);
+
+        // Check for new notifications to show toast
+        const currentIds = new Set(fetchedNotifs.map(n => n._id));
+        if (lastNotifIds.current.size > 0) {
+          const newNotifs = fetchedNotifs.filter(n => !n.isRead && !lastNotifIds.current.has(n._id));
+          if (newNotifs.length > 0) {
+            setToastQueue(prev => [...prev, ...newNotifs]);
+          }
+        }
+        lastNotifIds.current = currentIds;
       }
     } catch (err) {
       console.error("Failed to fetch notifications", err);
@@ -25,17 +38,23 @@ export default function NotificationDropdown() {
 
   useEffect(() => {
     fetchNotifications();
-    // Poll every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
+    // Poll every 15 seconds
+    const interval = setInterval(fetchNotifications, 15000);
     return () => clearInterval(interval);
   }, []);
 
+  // Automatically dismiss toasts after 5 seconds
+  useEffect(() => {
+    if (toastQueue.length > 0) {
+      const timer = setTimeout(() => {
+        setToastQueue(prev => prev.slice(1));
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastQueue]);
+
   function toggleDropdown() {
     setIsOpen(!isOpen);
-    if (!isOpen) {
-      // Mark all as read when opening
-      markAllAsRead();
-    }
   }
 
   function closeDropdown() {
@@ -53,6 +72,20 @@ export default function NotificationDropdown() {
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (err) {
       console.error("Failed to mark notifications as read", err);
+    }
+  };
+
+  const markSingleAsRead = async (id) => {
+    try {
+      await fetch("/api/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "mark_single_read", notificationId: id })
+      });
+      setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error("Failed to mark single notification as read", err);
     }
   };
 
@@ -77,6 +110,7 @@ export default function NotificationDropdown() {
     switch(type) {
       case 'shopify_order': return 'bg-brand-500';
       case 'music_generated': return 'bg-success-500';
+      case 'music_started': return 'bg-brand-400';
       case 'added_to_cart': return 'bg-warning-500';
       default: return 'bg-gray-500';
     }
@@ -119,25 +153,35 @@ export default function NotificationDropdown() {
           <h5 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             Notifications {unreadCount > 0 && <span className="ml-1 text-sm font-medium text-orange-500">({unreadCount})</span>}
           </h5>
-          <button
-            onClick={toggleDropdown}
-            className="text-gray-500 transition dropdown-toggle dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-          >
-            <svg
-              className="fill-current"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="text-xs font-medium text-brand-500 hover:text-brand-600 transition"
+              >
+                Mark all read
+              </button>
+            )}
+            <button
+              onClick={toggleDropdown}
+              className="text-gray-500 transition dropdown-toggle dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             >
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M6.21967 7.28131C5.92678 6.98841 5.92678 6.51354 6.21967 6.22065C6.51256 5.92775 6.98744 5.92775 7.28033 6.22065L11.999 10.9393L16.7176 6.22078C17.0105 5.92789 17.4854 5.92788 17.7782 6.22078C18.0711 6.51367 18.0711 6.98855 17.7782 7.28144L13.0597 12L17.7782 16.7186C18.0711 17.0115 18.0711 17.4863 17.7782 17.7792C17.4854 18.0721 17.0105 18.0721 16.7176 17.7792L11.999 13.0607L7.28033 17.7794C6.98744 18.0722 6.51256 18.0722 6.21967 17.7794C5.92678 17.4865 5.92678 17.0116 6.21967 16.7187L10.9384 12L6.21967 7.28131Z"
-                fill="currentColor"
-              />
-            </svg>
-          </button>
+              <svg
+                className="fill-current"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M6.21967 7.28131C5.92678 6.98841 5.92678 6.51354 6.21967 6.22065C6.51256 5.92775 6.98744 5.92775 7.28033 6.22065L11.999 10.9393L16.7176 6.22078C17.0105 5.92789 17.4854 5.92788 17.7782 6.22078C18.0711 6.51367 18.0711 6.98855 17.7782 7.28144L13.0597 12L17.7782 16.7186C18.0711 17.0115 18.0711 17.4863 17.7782 17.7792C17.4854 18.0721 17.0105 18.0721 16.7176 17.7792L11.999 13.0607L7.28033 17.7794C6.98744 18.0722 6.51256 18.0722 6.21967 17.7794C5.92678 17.4865 5.92678 17.0116 6.21967 16.7187L10.9384 12L6.21967 7.28131Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
         <ul className="flex flex-col h-auto overflow-y-auto custom-scrollbar">
           {notifications.length === 0 ? (
@@ -145,19 +189,31 @@ export default function NotificationDropdown() {
               No new notifications
             </li>
           ) : (
-            notifications.map((notification) => (
-              <li key={notification._id}>
-                <DropdownItem
-                  onItemClick={closeDropdown}
-                  className={`flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5 ${!notification.isRead ? 'bg-brand-50/50 dark:bg-brand-900/10' : ''}`}
-                  href={notification.link || "#"}
-                >
-                  <span className="relative block w-10 h-10 rounded-full z-1 max-w-10 bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
-                    <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            notifications.map((notification) => {
+              // Handle old Shopify order links that pointed directly to Shopify Admin
+              let notificationLink = notification.link || "#";
+              if (notification.type === 'shopify_order' && notificationLink.includes('/admin/orders/')) {
+                const parts = notificationLink.split('/admin/orders/');
+                if (parts.length > 1) {
+                  notificationLink = `/orders/${parts[1]}`;
+                }
+              }
+
+              return (
+                <li key={notification._id}>
+                  <DropdownItem
+                    tag="a"
+                    onItemClick={() => { markSingleAsRead(notification._id); closeDropdown(); }}
+                    className={`flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5 ${!notification.isRead ? 'bg-brand-50/50 dark:bg-brand-900/10' : ''}`}
+                    href={notificationLink}
+                  >
+                    <span className="relative block w-10 h-10 rounded-full z-1 max-w-10 bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
+                      <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       {notification.type === 'shopify_order' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />}
                       {notification.type === 'music_generated' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />}
+                      {notification.type === 'music_started' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />}
                       {notification.type === 'added_to_cart' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />}
-                      {notification.type === 'other' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
+                      {(!['shopify_order', 'music_generated', 'music_started', 'added_to_cart'].includes(notification.type)) && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
                     </svg>
 
                     <span className={`absolute bottom-0 right-0 z-10 h-2.5 w-full max-w-2.5 rounded-full border-[1.5px] border-white dark:border-gray-900 ${getIconColor(notification.type)}`}></span>
@@ -184,16 +240,41 @@ export default function NotificationDropdown() {
                   </span>
                 </DropdownItem>
               </li>
-            ))
+            );
+          })
           )}
         </ul>
-        <Link
-          href="/"
-          className="block px-4 py-2 mt-3 text-sm font-medium text-center text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-        >
-          View All Notifications
-        </Link>
       </Dropdown>
+
+      {/* Toast Container */}
+      <div className="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none">
+        {toastQueue.map((toast, index) => (
+          <div
+            key={toast._id + "-" + index}
+            className="flex items-center gap-3 bg-white dark:bg-gray-800 shadow-theme-lg rounded-xl p-4 border border-gray-100 dark:border-gray-700 pointer-events-auto transform transition-all duration-300 translate-y-0 opacity-100"
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${getIconColor(toast.type)}`}>
+               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {toast.type === 'shopify_order' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />}
+                  {toast.type === 'music_generated' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />}
+                  {toast.type === 'music_started' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />}
+                  {toast.type === 'added_to_cart' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />}
+                  {(!['shopify_order', 'music_generated', 'music_started', 'added_to_cart'].includes(toast.type)) && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
+               </svg>
+            </div>
+            <div className="flex-1 min-w-[200px] max-w-[250px]">
+              <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{toast.title}</h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">{toast.message}</p>
+            </div>
+            <button 
+              onClick={() => setToastQueue(prev => prev.filter(t => t._id !== toast._id))}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

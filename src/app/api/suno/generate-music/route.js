@@ -135,9 +135,9 @@ export async function POST(request) {
 
         // Create a notification
         await Notification.create({
-          title: "New Item Added to Cart",
+          title: "Music Generation Started",
           message: `${formData.email} started generating a song`,
-          type: "added_to_cart",
+          type: "music_started",
           link: `/ordered-musics/${newOrder._id}`
         });
         // Launch background process for abandoned carts

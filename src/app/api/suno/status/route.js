@@ -113,7 +113,7 @@ export async function GET(request) {
                   title: "Music Generation Complete",
                   message: `The song for ${existingOrder.email} is ready!`,
                   type: "music_generated",
-                  link: `/ordered-musics/${existingOrder._id}`
+                  link: `/ordered-musics/${existingOrder._id}`,
                 });
               } else {
                 await existingOrder.save();

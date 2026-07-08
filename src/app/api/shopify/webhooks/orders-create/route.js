@@ -57,10 +57,10 @@ export async function POST(request) {
               { $set: { status: newStatus, shopifyOrderId: orderData.id } },
               { new: true }
             );
-              if (result) {
-                updated = true;
-                console.log(`[Shopify Webhook] Updated music ${musicIdProp.value} → ${newStatus}`);
-              }
+            if (result) {
+              updated = true;
+              console.log(`[Shopify Webhook] Updated music ${musicIdProp.value} → ${newStatus}`);
+            }
           }
         }
       }
@@ -98,7 +98,7 @@ export async function POST(request) {
             );
 
             if (klaviyoResult?.success) {
-              await Promise.all(localOrders.map(o => 
+              await Promise.all(localOrders.map(o =>
                 Order.updateOne({ _id: o._id }, { $set: { deliveryEmailSent: true } })
               ));
               await fulfillShopifyOrder(orderData.id, settings);
@@ -113,7 +113,7 @@ export async function POST(request) {
       title: "Shopify Order Update",
       message: `Order #${orderData.order_number} (${orderData.financial_status}) by ${orderData.email || 'a customer'} for $${orderData.total_price}`,
       type: "shopify_order",
-      link: `https://${shopDomain}/admin/orders/${orderData.id}`
+      link: `/orders/${orderData.id}`
     });
 
     return NextResponse.json({ success: true }, { status: 200 });
