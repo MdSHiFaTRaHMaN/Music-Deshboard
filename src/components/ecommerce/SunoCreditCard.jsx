@@ -1,5 +1,7 @@
 import React from "react";
 import { getSettings } from "@/lib/getSettings";
+import { RiCoinsFill } from "react-icons/ri";
+
 
 export default async function SunoCreditCard() {
   const settings = await getSettings();
@@ -34,9 +36,10 @@ export default async function SunoCreditCard() {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 flex flex-col h-full">
       <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
-        <svg className="text-gray-800 size-6 dark:text-white/90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {/* <svg className="text-gray-800 size-6 dark:text-white/90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-        </svg>
+        </svg> */}
+        <RiCoinsFill className="text-gray-800 size-6 dark:text-white/90" />
       </div>
       <div className="flex items-end justify-between mt-5">
         <div>
