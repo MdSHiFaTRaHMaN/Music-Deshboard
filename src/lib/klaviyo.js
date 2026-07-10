@@ -36,6 +36,8 @@ export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, orders, ord
       if (matchedTrack) selectedTrack = matchedTrack;
     }
 
+    let rawLyrics = selectedTrack.lyrics || order.lyrics || "";
+
     return {
       musicId: order.musicId || "",
       occasion: order.occasion || "",
@@ -45,6 +47,7 @@ export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, orders, ord
       primaryAudioUrl: selectedTrack.audioUrl || "",
       title: selectedTrack.title || order.musicTracks[0]?.title || "Custom Song",
       imageUrl: selectedTrack.imageUrl || order.musicTracks[0]?.imageUrl || "",
+      lyrics: rawLyrics,
     };
   });
 
@@ -159,7 +162,7 @@ export async function sendKlaviyoMusicReady(klaviyoApiKey, email, order, resumeL
         "Authorization": `Klaviyo-API-Key ${klaviyoApiKey}`,
         "Accept": "application/json",
         "Content-Type": "application/json",
-        "revision": "2024-02-15", 
+        "revision": "2024-02-15",
       },
       body: JSON.stringify(payload),
     });
