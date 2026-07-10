@@ -19,6 +19,7 @@ export async function proxy(request) {
     "/api/auth/login",
     "/api/auth/shopify-callback", // Keep Shopify app authentication working
     "/api/shopify/webhooks", // Allow Shopify webhooks
+    "/api/download", // Public download route for emails
     "/_next", // static files
     "/favicon.ico"
   ];
