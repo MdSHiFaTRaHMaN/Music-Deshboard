@@ -55,7 +55,7 @@ export async function POST(request) {
             const result = await Order.findOneAndUpdate(
               { musicId: musicIdProp.value },
               { $set: { status: newStatus, shopifyOrderId: orderData.id } },
-              { new: true }
+              { returnDocument: 'after' }
             );
             if (result) {
               updated = true;

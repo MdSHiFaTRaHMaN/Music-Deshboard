@@ -56,7 +56,7 @@ export async function POST(request) {
           status: newStatus,
         },
       },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
     );
 
     return withCORS(NextResponse.json({ success: true, order }), origin);

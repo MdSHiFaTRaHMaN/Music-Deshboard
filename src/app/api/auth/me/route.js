@@ -77,7 +77,7 @@ export async function PUT(request) {
     const user = await User.findByIdAndUpdate(
       userId,
       { $set: allowedUpdates },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     ).select("-password");
 
     if (!user) {

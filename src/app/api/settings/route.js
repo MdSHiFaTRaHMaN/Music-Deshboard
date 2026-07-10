@@ -53,7 +53,7 @@ export async function PUT(request) {
     const settings = await Settings.findOneAndUpdate(
       {}, // filter (empty means the first doc it finds, or create one if none)
       { $set: data },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
 
     clearSettingsCache();

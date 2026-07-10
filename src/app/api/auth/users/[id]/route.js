@@ -53,7 +53,7 @@ export async function PUT(request, { params }) {
         phone,
         designation
       },
-      { new: true }
+      { returnDocument: 'after' }
     ).select("-password");
 
     if (!updatedUser) {
