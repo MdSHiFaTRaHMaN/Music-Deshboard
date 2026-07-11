@@ -7,7 +7,7 @@ import Order from "@/models/Order";
 import { getSettings } from "@/lib/getSettings";
 
 export const metadata = {
-  title: "All Musics | TailAdmin - Next.js Dashboard Template",
+  title: "All Musics | My Own Music",
   description: "View all generated custom musics, including those pending checkout.",
 };
 

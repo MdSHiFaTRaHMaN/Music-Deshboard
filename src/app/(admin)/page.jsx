@@ -7,9 +7,8 @@ import SunoCreditCard from "@/components/ecommerce/SunoCreditCard";
 import { getDashboardMetrics } from "@/lib/getDashboardMetrics";
 
 export const metadata = {
-  title:
-    "Next.js E-commerce Dashboard | TailAdmin - Next.js Dashboard Template",
-  description: "This is Next.js Home for TailAdmin Dashboard Template",
+  title: "Dashboard | My Own Music",
+  description: "Admin Dashboard for My Own Music",
 };
 
 export const dynamic = "force-dynamic";
