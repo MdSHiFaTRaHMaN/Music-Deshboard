@@ -85,9 +85,9 @@ export async function getDashboardMetrics() {
       }
     }
 
-    let addedToCartTotal = Math.max(0, totalOrders - shopifyTotalOrders);
-    let addedToCartThisMonth = Math.max(0, generatedOrdersThisMonth - shopifyOrdersThisMonth);
-    let addedToCartLastMonth = Math.max(0, generatedOrdersLastMonth - shopifyOrdersLastMonth);
+    const addedToCartTotal = await Order.countDocuments({ status: "in_cart" });
+    const addedToCartThisMonth = await Order.countDocuments({ status: "in_cart", createdAt: { $gte: startOfThisMonth } });
+    const addedToCartLastMonth = await Order.countDocuments({ status: "in_cart", createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth } });
 
     // For MonthlySalesChart (aggregate up to 60 days)
     const nowForChart = new Date();

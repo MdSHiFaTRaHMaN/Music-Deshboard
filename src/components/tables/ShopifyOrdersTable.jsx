@@ -2,10 +2,13 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import Badge from "@/components/ui/badge/Badge";
+import Pagination from "./Pagination";
 
 export default function ShopifyOrdersTable({ initialOrders }) {
   const [sortOption, setSortOption] = useState("date_desc");
   const [filterOption, setFilterOption] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const filteredAndSortedOrders = useMemo(() => {
     let result = [...initialOrders];
@@ -44,7 +47,10 @@ export default function ShopifyOrdersTable({ initialOrders }) {
           <select
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-white/[0.05] dark:bg-white/[0.03] dark:text-white/90 transition-colors"
             value={filterOption}
-            onChange={(e) => setFilterOption(e.target.value)}
+            onChange={(e) => {
+              setFilterOption(e.target.value);
+              setCurrentPage(1);
+            }}
           >
             <option value="all">All Orders</option>
             <option value="fulfilled">Fulfilled</option>
@@ -55,7 +61,10 @@ export default function ShopifyOrdersTable({ initialOrders }) {
           <select
             className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-white/[0.05] dark:bg-white/[0.03] dark:text-white/90 transition-colors"
             value={sortOption}
-            onChange={(e) => setSortOption(e.target.value)}
+            onChange={(e) => {
+              setSortOption(e.target.value);
+              setCurrentPage(1);
+            }}
           >
             <option value="date_desc">Sort by Date (Newest)</option>
             <option value="date_asc">Sort by Date (Oldest)</option>
@@ -79,7 +88,7 @@ export default function ShopifyOrdersTable({ initialOrders }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-              {filteredAndSortedOrders.map((order) => (
+              {filteredAndSortedOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.02]">
                   <td className="px-5 py-4 text-sm font-medium text-gray-800 dark:text-white/90">
                     <Link href={`/orders/${order.id}`} className="text-brand-500 hover:text-brand-600 hover:underline">
@@ -130,6 +139,15 @@ export default function ShopifyOrdersTable({ initialOrders }) {
           </table>
         </div>
       </div>
+      {Math.ceil(filteredAndSortedOrders.length / itemsPerPage) > 1 && (
+        <div className="flex items-center justify-center p-4 mt-4">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(filteredAndSortedOrders.length / itemsPerPage)}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
+        </div>
+      )}
     </>
   );
 }

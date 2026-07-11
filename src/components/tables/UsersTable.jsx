@@ -14,12 +14,15 @@ import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
 import { useUser } from "@/context/UserContext";
+import Pagination from "./Pagination";
 
 export default function UsersTable() {
   const { user, loading: userLoading } = useUser();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -151,7 +154,7 @@ export default function UsersTable() {
               </TableHeader>
 
               <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                {users.map((user) => (
+                {users.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((user) => (
                   <TableRow key={user._id}>
                     <TableCell className="px-5 py-4 sm:px-6 text-start">
                       <div className="flex items-center gap-3">
@@ -226,6 +229,16 @@ export default function UsersTable() {
           </div>
         </div>
       </div>
+
+      {Math.ceil(users.length / itemsPerPage) > 1 && (
+        <div className="flex items-center justify-center p-4 mt-4">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(users.length / itemsPerPage)}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
+        </div>
+      )}
 
       <Modal
         isOpen={isEditModalOpen}

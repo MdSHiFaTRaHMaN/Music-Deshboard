@@ -10,11 +10,15 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
+import Pagination from "./Pagination";
 
 export default function MusicTable({ orders }) {
   const router = useRouter();
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   async function handleSyncShopify() {
     setSyncing(true);
@@ -35,6 +39,17 @@ export default function MusicTable({ orders }) {
     }
   }
 
+  const filteredOrders = orders?.filter((order) => {
+    if (statusFilter === "all") return true;
+    return order.status === statusFilter;
+  });
+
+  const totalPages = Math.ceil((filteredOrders?.length || 0) / itemsPerPage);
+  const paginatedOrders = filteredOrders?.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   if (!orders || orders.length === 0) {
     return (
       <div className="p-6 text-center text-gray-500 dark:text-gray-400">
@@ -45,6 +60,32 @@ export default function MusicTable({ orders }) {
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+      {/* Filter Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between p-4 sm:p-5 border-b border-gray-100 dark:border-white/[0.05] gap-4 sm:gap-0">
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-gray-800 dark:text-white/90 text-theme-md">
+            Filter Music
+          </h3>
+          <Badge size="sm" color="light" className="rounded-full px-2">
+            {filteredOrders?.length || 0}
+          </Badge>
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-white/[0.05] dark:bg-white/[0.03] dark:text-white/90 dark:focus:border-brand-500"
+        >
+          <option value="all">All Statuses</option>
+          <option value="created">Created</option>
+          <option value="in_cart">In Cart</option>
+          <option value="pending">Payment Pending</option>
+          <option value="paid">Paid</option>
+        </select>
+      </div>
+
       <div className="max-w-full overflow-x-auto">
         <div className="min-w-[1102px]">
           <Table>
@@ -74,7 +115,7 @@ export default function MusicTable({ orders }) {
 
             {/* Table Body */}
             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-              {orders.map((order) => {
+              {paginatedOrders?.map((order) => {
                 const selectedTrack = order.musicTracks?.find(t => t.id === order.selectedDemo) || order.musicTracks?.[0];
                 const audioUrl = selectedTrack?.audioUrl || selectedTrack?.streamAudioUrl;
                 const filename = `${order.occasion || "music"}-${order.recipientName || order.email || "song"}.mp3`.replace(/\s+/g, "_");
@@ -164,8 +205,24 @@ export default function MusicTable({ orders }) {
               })}
             </TableBody>
           </Table>
+          
+          {filteredOrders.length === 0 && (
+            <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+              No orders found for the selected status.
+            </div>
+          )}
         </div>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center p-4 border-t border-gray-100 dark:border-white/[0.05]">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
+        </div>
+      )}
     </div>
   );
 }
