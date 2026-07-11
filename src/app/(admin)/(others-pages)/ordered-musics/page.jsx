@@ -48,7 +48,8 @@ export default async function OrderedMusics() {
             if (musicIdProp?.value) {
               await Order.findOneAndUpdate(
                 { musicId: musicIdProp.value },
-                { $set: { status: financialStatus } }
+                { $set: { status: financialStatus } },
+                { returnDocument: 'after' }
               );
               musicIdMatched = true;
             }
