@@ -7,7 +7,32 @@ import { getSettings } from "@/lib/getSettings";
 import { sendKlaviyoMusicDelivery } from "@/lib/klaviyo";
 import { fulfillShopifyOrder } from "@/lib/shopifyFulfill";
 
+
+// Helper: send Klaviyo delivery email and fulfill Shopify order
+async function sendDeliveryEmail(localOrders, settings, orderData) {
+  try {
+    const klaviyoResult = await sendKlaviyoMusicDelivery(
+      settings.klaviyoApiKey,
+      orderData.email || localOrders[0].email,
+      localOrders,
+      orderData.order_number
+    );
+    if (klaviyoResult?.success) {
+      await Promise.all(localOrders.map(o =>
+        Order.updateOne({ _id: o._id }, { $set: { deliveryEmailSent: true } })
+      ));
+      await fulfillShopifyOrder(orderData.id, settings);
+      console.log(`[Shopify Webhook] Delivery email + fulfillment done for Shopify order ${orderData.id}.`);
+    } else {
+      console.error(`[Shopify Webhook] Klaviyo delivery email failed for order ${orderData.id}.`);
+    }
+  } catch (e) {
+    console.error(`[Shopify Webhook] sendDeliveryEmail error:`, e);
+  }
+}
+
 export async function POST(request) {
+
   try {
     const rawBody = await request.text();
     const hmacHeader = request.headers.get("X-Shopify-Hmac-Sha256");
@@ -90,22 +115,45 @@ export async function POST(request) {
           const anyUnsent = localOrders.some(o => !o.deliveryEmailSent);
 
           if (allReady && anyUnsent) {
-            const klaviyoResult = await sendKlaviyoMusicDelivery(
-              settings.klaviyoApiKey,
-              orderData.email || localOrders[0].email,
-              localOrders,
-              orderData.order_number
-            );
-
-            if (klaviyoResult?.success) {
-              await Promise.all(localOrders.map(o =>
-                Order.updateOne({ _id: o._id }, { $set: { deliveryEmailSent: true } })
-              ));
-              await fulfillShopifyOrder(orderData.id, settings);
-            }
+            // Tracks already in DB — send delivery email immediately
+            await sendDeliveryEmail(localOrders, settings, orderData);
+          } else if (anyUnsent) {
+            // Tracks not ready yet (generation still in progress) — retry every 15s for up to 10 minutes
+            console.log(`[Shopify Webhook] Tracks not ready yet for order ${orderData.id}. Starting retry polling...`);
+            const shopifyOrderId = orderData.id;
+            const shopifyEmail = orderData.email;
+            const shopifyOrderNumber = orderData.order_number;
+            let retries = 0;
+            const maxRetries = 40; // 40 * 15s = 10 minutes
+            const retryInterval = setInterval(async () => {
+              retries++;
+              if (retries > maxRetries) {
+                console.log(`[Shopify Webhook] Delivery retry timed out for Shopify order ${shopifyOrderId}.`);
+                clearInterval(retryInterval);
+                return;
+              }
+              try {
+                const { default: dbConnect } = await import("@/lib/mongoose");
+                await dbConnect();
+                const { default: Order } = await import("@/models/Order");
+                const retryOrders = await Order.find({ shopifyOrderId: shopifyOrderId });
+                const retryAllReady = retryOrders.length > 0 && retryOrders.every(o => o.musicTracks && o.musicTracks.length > 0 && o.musicTracks[0].audioUrl);
+                const retryAnyUnsent = retryOrders.some(o => !o.deliveryEmailSent);
+                if (retryAllReady && retryAnyUnsent) {
+                  clearInterval(retryInterval);
+                  const { getSettings } = await import("@/lib/getSettings");
+                  const retrySettings = await getSettings();
+                  await sendDeliveryEmail(retryOrders, retrySettings, { id: shopifyOrderId, email: shopifyEmail, order_number: shopifyOrderNumber });
+                  console.log(`[Shopify Webhook] Delivery email sent on retry #${retries} for order ${shopifyOrderId}.`);
+                }
+              } catch (retryErr) {
+                console.error(`[Shopify Webhook] Retry error for ${shopifyOrderId}:`, retryErr);
+              }
+            }, 15 * 1000);
           }
         }
       }
+
     }
     
     // Create notification
