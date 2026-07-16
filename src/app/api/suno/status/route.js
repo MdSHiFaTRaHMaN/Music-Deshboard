@@ -4,6 +4,7 @@ import Order from "@/models/Order";
 import Notification from "@/models/Notification";
 import { getSettings } from "@/lib/getSettings";
 import { withCORS, handleOptions } from "@/lib/cors";
+import { decryptTaskId } from "@/lib/encryption";
 
 // Preflight — the browser sends this automatically before the real GET.
 export async function OPTIONS(request) {
@@ -15,7 +16,8 @@ export async function GET(request) {
   const origin = request.headers.get("origin") || "";
   try {
     const { searchParams } = new URL(request.url);
-    const taskId = searchParams.get("taskId");
+    const encryptedTaskId = searchParams.get("taskId");
+    const taskId = decryptTaskId(encryptedTaskId);
     const type = searchParams.get("type") || "music"; // "music" | "lyrics"
 
     if (!taskId) {

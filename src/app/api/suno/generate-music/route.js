@@ -5,6 +5,7 @@ import Notification from "@/models/Notification";
 import { getSettings } from "@/lib/getSettings";
 import { withCORS, handleOptions } from "@/lib/cors";
 import { checkAbandonedCart } from "@/lib/abandonedCartChecker";
+import { encryptTaskId } from "@/lib/encryption";
 
 // Preflight — the browser sends this automatically before the real POST.
 export async function OPTIONS(request) {
@@ -150,7 +151,7 @@ export async function POST(request) {
       }
     }
 
-    return withCORS(NextResponse.json({ taskId }), origin);
+    return withCORS(NextResponse.json({ taskId: encryptTaskId(taskId) }), origin);
   } catch (error) {
     console.error("[generate-music] Error:", error);
     return withCORS(NextResponse.json({ error: "Internal server error" }, { status: 500 }), origin);

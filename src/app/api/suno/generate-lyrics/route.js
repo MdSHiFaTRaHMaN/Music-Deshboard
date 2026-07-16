@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSettings } from "@/lib/getSettings";
 import { withCORS, handleOptions } from "@/lib/cors";
+import { encryptTaskId } from "@/lib/encryption";
 
 // Preflight — the browser sends this automatically before the real POST.
 export async function OPTIONS(request) {
@@ -82,7 +83,7 @@ export async function POST(request) {
     }
 
     // Return taskId for client to poll
-    return withCORS(NextResponse.json({ taskId: data.data?.taskId }), origin);
+    return withCORS(NextResponse.json({ taskId: encryptTaskId(data.data?.taskId) }), origin);
   } catch (error) {
     console.error("[generate-lyrics] Error:", error);
     return withCORS(NextResponse.json({ error: "Internal server error" }, { status: 500 }), origin);
