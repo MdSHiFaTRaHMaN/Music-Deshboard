@@ -89,57 +89,15 @@ export function checkAbandonedCart(orderId, taskId, email, resumeBaseUrl) {
             return;
           }
 
-          // Only send the email if the user is NO LONGER on the page (tab is closed).
-          // We know the tab is closed if the frontend hasn't polled status in the last 15 seconds.
-          const isTabClosed = !order.lastPolledAt || (Date.now() - new Date(order.lastPolledAt).getTime() > 15000);
-
-          if (isTabClosed) {
-            order.resumeEmailSent = true;
-            await order.save();
-            
-            // Trigger Klaviyo Event IMMEDIATELY when ready
-            if (settings.klaviyoApiKey) {
-              const resumeLink = `${resumeBaseUrl}?resumeOrder=${orderId}`;
-              await sendKlaviyoMusicReady(settings.klaviyoApiKey, email, order, resumeLink);
-              console.log(`[AbandonedCart] Klaviyo Music_Ready_To_Select event sent to ${email} (Tab was closed).`);
-            }
-          } else {
-            // Save tracks but don't mark email as sent yet
-            await order.save();
-            console.log(`[AbandonedCart] Tab is still open. Waiting 30 minutes to see if they checkout...`);
-            
-            // Spawn a new timeout for 30 minutes to send an abandoned cart email if they don't checkout
-            setTimeout(async () => {
-              try {
-                await dbConnect();
-                const checkOrder = await Order.findById(orderId);
-                // If it's still 'created' after 30 mins, they didn't checkout.
-                if (checkOrder && checkOrder.status === "created" && !checkOrder.resumeEmailSent) {
-                  // Double check they didn't regenerate while we were waiting
-                  const newerOrderLater = await Order.findOne({
-                    email: email,
-                    createdAt: { $gt: checkOrder.createdAt }
-                  });
-
-                  if (newerOrderLater) {
-                    console.log(`[AbandonedCart] User regenerated during 30m wait. Aborting delayed email for ${orderId}.`);
-                    return;
-                  }
-
-                  const settingsLater = await getSettings();
-                  if (settingsLater.klaviyoApiKey) {
-                    const resumeLink = `${resumeBaseUrl}?resumeOrder=${orderId}`;
-                    await sendKlaviyoMusicReady(settingsLater.klaviyoApiKey, email, checkOrder, resumeLink);
-                    
-                    checkOrder.resumeEmailSent = true;
-                    await checkOrder.save();
-                    console.log(`[AbandonedCart] Klaviyo event sent to ${email} (Abandoned after 30 mins).`);
-                  }
-                }
-              } catch (e) {
-                console.error("[AbandonedCart] Delayed check error:", e);
-              }
-            }, 30 * 60 * 1000); // 30 mins
+          // Always send the email immediately when ready, regardless of tab state.
+          order.resumeEmailSent = true;
+          await order.save();
+          
+          // Trigger Klaviyo Event IMMEDIATELY when ready
+          if (settings.klaviyoApiKey) {
+            const resumeLink = `${resumeBaseUrl}?resumeOrder=${orderId}`;
+            await sendKlaviyoMusicReady(settings.klaviyoApiKey, email, order, resumeLink);
+            console.log(`[AbandonedCart] Klaviyo Music_Ready_To_Select event sent to ${email} (Immediately).`);
           }
         }
       } else if (status && ["CREATE_TASK_FAILED", "GENERATE_AUDIO_FAILED", "CALLBACK_EXCEPTION", "SENSITIVE_WORD_ERROR"].includes(status)) {
