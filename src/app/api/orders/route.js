@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import Order from "@/models/Order";
 import { withCORS, handleOptions } from "@/lib/cors";
+import { decryptTaskId } from "@/lib/encryption";
 
 // Preflight — the browser sends this automatically before the real POST.
 export async function OPTIONS(request) {
@@ -14,7 +15,9 @@ export async function POST(request) {
     await dbConnect();
 
     const body = await request.json();
-    const { formData, musicTracks, taskId, musicId, productId, variantId } = body;
+    const { formData, musicTracks, taskId: rawTaskId, musicId, productId, variantId } = body;
+    // Always use the raw (decrypted) taskId for DB operations
+    const taskId = decryptTaskId(rawTaskId);
 
     if (!formData?.email || !taskId) {
       return withCORS(
