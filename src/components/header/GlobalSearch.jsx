@@ -2,17 +2,86 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Badge from "@/components/ui/badge/Badge";
-import { LuLayoutGrid } from "react-icons/lu";
+import { LuLayoutGrid, LuSettings } from "react-icons/lu";
 import { RiMusicAiLine } from "react-icons/ri";
 import { BsCartPlus } from "react-icons/bs";
 import { BiPurchaseTag } from "react-icons/bi";
+import { MdFormatListBulletedAdd } from "react-icons/md";
+import { FiUsers, FiUserPlus } from "react-icons/fi";
+import { FaRegCircleUser } from "react-icons/fa6";
+import { HiSparkles } from "react-icons/hi2";
 
-// Quick navigation links available in search
+// Quick navigation links shown by default (empty search) in the dropdown.
 const QUICK_LINKS = [
-  { label: "Shopify Orders", path: "/orders", icon: <BiPurchaseTag/> },
-  { label: "All Musics", path: "/all-musics", icon: <RiMusicAiLine/> },
-  { label: "Ordered Musics", path: "/ordered-musics", icon: <BsCartPlus/> },
+  { label: "Shopify Orders", path: "/orders", icon: <BiPurchaseTag /> },
+  { label: "All Musics", path: "/all-musics", icon: <RiMusicAiLine /> },
+  { label: "Ordered Musics", path: "/ordered-musics", icon: <BsCartPlus /> },
   { label: "Dashboard", path: "/", icon: <LuLayoutGrid /> },
+];
+
+// All navigable routes in the app. Used only for search matching so users can
+// reach any route by typing its name or a related keyword.
+const ALL_ROUTES = [
+  {
+    label: "Dashboard",
+    path: "/",
+    icon: <LuLayoutGrid />,
+    keywords: ["home", "overview", "main", "dashboard"],
+  },
+  {
+    label: "Shopify Orders",
+    path: "/orders",
+    icon: <BiPurchaseTag />,
+    keywords: ["orders", "shopify", "purchase", "sales"],
+  },
+  {
+    label: "Ordered Musics",
+    path: "/ordered-musics",
+    icon: <BsCartPlus />,
+    keywords: ["ordered", "customer", "choice", "music", "songs", "cart"],
+  },
+  {
+    label: "All Musics",
+    path: "/all-musics",
+    icon: <RiMusicAiLine />,
+    keywords: ["all", "music", "songs", "tracks", "library"],
+  },
+  {
+    label: "Generate Music",
+    path: "/genarate",
+    icon: <HiSparkles />,
+    keywords: ["generate", "create", "ai", "suno", "new music"],
+  },
+  {
+    label: "Form Elements",
+    path: "/form-elements",
+    icon: <MdFormatListBulletedAdd />,
+    keywords: ["form", "elements", "inputs", "fields"],
+  },
+  {
+    label: "All Users",
+    path: "/users",
+    icon: <FiUsers />,
+    keywords: ["users", "staff", "members", "people", "accounts"],
+  },
+  {
+    label: "Create Staff",
+    path: "/create-staff",
+    icon: <FiUserPlus />,
+    keywords: ["create", "staff", "add user", "new staff", "invite"],
+  },
+  {
+    label: "User Profile",
+    path: "/profile",
+    icon: <FaRegCircleUser />,
+    keywords: ["profile", "account", "me", "my profile"],
+  },
+  {
+    label: "Settings",
+    path: "/settings",
+    icon: <LuSettings />,
+    keywords: ["settings", "preferences", "config", "configuration"],
+  },
 ];
 
 export default function GlobalSearch() {
@@ -92,10 +161,21 @@ export default function GlobalSearch() {
     return () => clearTimeout(debounceTimer);
   }, [query]);
 
-  // Filter quick links based on query
-  const filteredLinks = QUICK_LINKS.filter(link => 
-    link.label.toLowerCase().includes(query.toLowerCase())
-  );
+  // When empty, show the default QUICK_LINKS. When typing, search across ALL
+  // routes by matching the label, path, or any related keyword so users can
+  // reach any route in the app.
+  const q = query.trim().toLowerCase();
+  const filteredLinks = q.length === 0
+    ? QUICK_LINKS
+    : ALL_ROUTES.filter((link) => {
+        const haystack = [
+          link.label.toLowerCase(),
+          link.path.toLowerCase(),
+          ...(link.keywords || []),
+        ].join(" ");
+        // Match if every whitespace-separated term appears in the haystack.
+        return q.split(/\s+/).every((term) => haystack.includes(term));
+      });
 
   // Combine items for keyboard navigation
   const items = [
@@ -114,8 +194,12 @@ export default function GlobalSearch() {
       setActiveIndex((prev) => (prev > -1 ? prev - 1 : -1));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (activeIndex >= 0 && activeIndex < items.length) {
-        const item = items[activeIndex];
+      // Use the highlighted item, or fall back to the first available match so
+      // a user can just type and press Enter to jump to a route.
+      const targetIndex =
+        activeIndex >= 0 && activeIndex < items.length ? activeIndex : 0;
+      const item = items[targetIndex];
+      if (item) {
         if (item.type === "link") {
           handleNavigate(item.data.path);
         } else if (item.type === "order") {
