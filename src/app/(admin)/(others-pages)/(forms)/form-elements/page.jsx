@@ -12,6 +12,7 @@ export default function FormElements() {
     genres: [],
     voices: [],
     moods: [],
+    languages: [],
     packages: [],
   });
   
@@ -29,7 +30,28 @@ export default function FormElements() {
     genres: "",
     voices: "",
     moods: "",
+    languages: "",
   });
+
+  const [draggedSimple, setDraggedSimple] = useState({ category: null, index: null });
+  const [draggedPkg, setDraggedPkg] = useState(null);
+  const [draggablePkgId, setDraggablePkgId] = useState(null);
+  
+  const handleSimpleDragStart = (category, index) => {
+    setDraggedSimple({ category, index });
+  };
+  const handleSimpleDrop = (category, index) => {
+    if (draggedSimple.category === category && draggedSimple.index !== null && draggedSimple.index !== index) {
+      setOptions((prev) => {
+        const arr = [...prev[category]];
+        const draggedItem = arr[draggedSimple.index];
+        arr.splice(draggedSimple.index, 1);
+        arr.splice(index, 0, draggedItem);
+        return { ...prev, [category]: arr };
+      });
+    }
+    setDraggedSimple({ category: null, index: null });
+  };
 
   // Calculate if options have changed
   const hasChanged = JSON.stringify(options) !== JSON.stringify(initialOptions);
@@ -180,7 +202,14 @@ export default function FormElements() {
       <h3 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">{title}</h3>
       <div className="mb-4 flex flex-wrap gap-2">
         {options[category].map((item, idx) => (
-          <div key={idx} className="flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-sm text-brand-500 dark:bg-brand-500/10 dark:text-brand-400">
+          <div 
+            key={idx} 
+            draggable
+            onDragStart={() => handleSimpleDragStart(category, idx)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => { e.preventDefault(); handleSimpleDrop(category, idx); }}
+            className="flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-sm text-brand-500 dark:bg-brand-500/10 dark:text-brand-400 cursor-move border border-transparent hover:border-brand-500 transition-colors"
+          >
             <span>{item}</span>
             <button
               onClick={() => handleRemoveSimple(category, idx)}
@@ -211,9 +240,16 @@ export default function FormElements() {
         <p className="text-gray-500 dark:text-gray-400">
           Manage the selectable options and packages for the Generate Music page.
         </p>
-        <Button onClick={handleSave} disabled={saving || !hasChanged}>
-          {saving ? "Saving..." : "Save Changes"}
-        </Button>
+        <div className="flex gap-2">
+          {hasChanged && (
+            <Button variant="outline" onClick={() => setOptions(initialOptions)}>
+              Discard Changes
+            </Button>
+          )}
+          <Button onClick={handleSave} disabled={saving || !hasChanged}>
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 mb-6">
@@ -221,6 +257,7 @@ export default function FormElements() {
         {renderSimpleManager("Genres", "genres")}
         {renderSimpleManager("Voices", "voices")}
         {renderSimpleManager("Moods", "moods")}
+        {renderSimpleManager("Languages", "languages")}
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
@@ -231,8 +268,35 @@ export default function FormElements() {
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
           {options.packages.map((pkg, pIdx) => (
-            <div key={pIdx} className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-              <div className="mb-3 flex justify-end">
+            <div 
+              key={pIdx} 
+              draggable={draggablePkgId === pIdx}
+              onDragStart={() => setDraggedPkg(pIdx)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (draggedPkg !== null && draggedPkg !== pIdx) {
+                  setOptions((prev) => {
+                    const arr = [...prev.packages];
+                    const draggedItem = arr[draggedPkg];
+                    arr.splice(draggedPkg, 1);
+                    arr.splice(pIdx, 0, draggedItem);
+                    return { ...prev, packages: arr };
+                  });
+                }
+                setDraggedPkg(null);
+              }}
+              className="rounded-xl border border-gray-200 p-4 dark:border-gray-700 hover:border-brand-500 transition-colors bg-white dark:bg-gray-800"
+            >
+              <div className="mb-3 flex justify-between items-center">
+                <span 
+                  className="text-gray-400 cursor-move select-none" 
+                  title="Drag to reorder"
+                  onMouseEnter={() => setDraggablePkgId(pIdx)}
+                  onMouseLeave={() => setDraggablePkgId(null)}
+                >
+                  ⣿ Reorder
+                </span>
                 <button onClick={() => handleRemovePackage(pIdx)} className="text-red-500 hover:text-red-700 text-sm font-semibold">
                   Remove Package
                 </button>
@@ -249,7 +313,28 @@ export default function FormElements() {
                 </div>
                 <div>
                   <label className="text-xs text-gray-500">Price</label>
-                  <Input type="text" value={pkg.price} onChange={(e) => handlePackageChange(pIdx, "price", e.target.value)} />
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3 text-gray-500 text-sm select-none pointer-events-none">€</span>
+                    <Input
+                      type="text"
+                      className="pl-7"
+                      value={pkg.price.replace(/^€/, "")}
+                      onChange={(e) => handlePackageChange(pIdx, "price", "€" + e.target.value.replace(/^€/, ""))}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">Compare At Price (Optional)</label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3 text-gray-500 text-sm select-none pointer-events-none">€</span>
+                    <Input
+                      type="text"
+                      className="pl-7"
+                      placeholder="49.95"
+                      value={(pkg.compareAtPrice || "").replace(/^€/, "")}
+                      onChange={(e) => handlePackageChange(pIdx, "compareAtPrice", e.target.value ? "€" + e.target.value.replace(/^€/, "") : "")}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs text-gray-500">Tagline (Optional)</label>
@@ -327,7 +412,12 @@ export default function FormElements() {
         </div>
       </div>
       
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex justify-end gap-2">
+        {hasChanged && (
+          <Button variant="outline" onClick={() => setOptions(initialOptions)}>
+            Discard Changes
+          </Button>
+        )}
         <Button onClick={handleSave} disabled={saving || !hasChanged}>
           {saving ? "Saving..." : "Save All Changes"}
         </Button>

@@ -47,9 +47,9 @@ export default function MonthlyTarget({
 
   const formatCurrency = (val) => {
     if (val >= 1000) {
-      return `$${(val / 1000).toFixed(1)}K`.replace('.0K', 'K');
+      return `€${(val / 1000).toFixed(1)}K`.replace('.0K', 'K');
     }
-    return `$${val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    return `€${val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
   const options = {
@@ -158,7 +158,7 @@ export default function MonthlyTarget({
           </span>
         </div>
         <p className="mx-auto mt-10 w-full max-w-[380px] text-center text-sm text-gray-500 sm:text-base">
-          You earned ${revenueToday.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} today, {isHigher ? "it's higher than last month. Keep up your good work!" : "which is lower than last month. Let's push for more sales!"}
+          You earned €{revenueToday.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} today, {isHigher ? "it's higher than last month. Keep up your good work!" : "which is lower than last month. Let's push for more sales!"}
         </p>
       </div>
 

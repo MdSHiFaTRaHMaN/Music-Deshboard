@@ -8,7 +8,8 @@ const packageSchema = new mongoose.Schema({
   features: [{ type: String }],
   image: { type: String },
   shopifyProductId: { type: String },
-  shopifyVariantId: { type: String }
+  shopifyVariantId: { type: String },
+  compareAtPrice: { type: String }
 });
 
 const generateOptionSchema = new mongoose.Schema(
@@ -17,6 +18,7 @@ const generateOptionSchema = new mongoose.Schema(
     genres: [{ type: String }],
     voices: [{ type: String }],
     moods: [{ type: String }],
+    languages: [{ type: String }],
     packages: [packageSchema]
   },
   { timestamps: true }

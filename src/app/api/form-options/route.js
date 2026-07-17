@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import GenerateOption from "@/models/GenerateOption";
 import { withCORS, handleOptions } from "@/lib/cors";
+import { getSettings } from "@/lib/getSettings";
 
 const defaultOptions = {
   occasions: [
@@ -15,6 +16,7 @@ const defaultOptions = {
   ],
   voices: ["Male", "Female", "Duet"],
   moods: ["Romantic", "Energetic", "Calm", "Inspiring", "Festive", "Emotional", "Powerful"],
+  languages: ["English", "German", "Dutch", "French", "Spanish"],
   packages: [
     {
       id: "muziekbox", title: "Muziekbox", price: "€59.95", tagline: "Perfect as a gift!",
@@ -81,14 +83,68 @@ export async function PUT(request) {
       options = new GenerateOption();
     }
 
+    const oldPackages = options.packages ? JSON.parse(JSON.stringify(options.packages)) : [];
+
     // Update fields
     if (data.occasions) options.occasions = data.occasions;
     if (data.genres) options.genres = data.genres;
     if (data.voices) options.voices = data.voices;
     if (data.moods) options.moods = data.moods;
+    if (data.languages) options.languages = data.languages;
     if (data.packages) options.packages = data.packages;
 
     await options.save();
+
+    // Check if we need to sync prices to Shopify
+    if (data.packages) {
+      try {
+        const settings = await getSettings();
+        if (settings && settings.shopUrl1 && settings.shopifyAdminApiKey) {
+          let url = settings.shopUrl1;
+          if (!url.startsWith("http")) url = `https://${url}`;
+
+          for (const pkg of data.packages) {
+            if (pkg.shopifyVariantId) {
+              const oldPkg = oldPackages.find(p => p.id === pkg.id);
+              const priceChanged = !oldPkg || oldPkg.price !== pkg.price;
+              const compareAtChanged = !oldPkg || oldPkg.compareAtPrice !== pkg.compareAtPrice;
+
+              if (priceChanged || compareAtChanged) {
+                const numericPrice = pkg.price ? pkg.price.replace(/[^0-9.]/g, '') : null;
+                const numericCompareAt = pkg.compareAtPrice ? pkg.compareAtPrice.replace(/[^0-9.]/g, '') : null;
+
+                const variantUpdate = {
+                  variant: {
+                    id: pkg.shopifyVariantId,
+                  }
+                };
+
+                if (numericPrice) variantUpdate.variant.price = numericPrice;
+                variantUpdate.variant.compare_at_price = numericCompareAt ? numericCompareAt : null;
+
+                const res = await fetch(`${url}/admin/api/2024-04/variants/${pkg.shopifyVariantId}.json`, {
+                  method: "PUT",
+                  headers: {
+                    "X-Shopify-Access-Token": settings.shopifyAdminApiKey,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify(variantUpdate)
+                });
+                
+                if (!res.ok) {
+                  const errText = await res.text();
+                  console.error(`[Shopify Sync] Failed to update variant ${pkg.shopifyVariantId}:`, errText);
+                } else {
+                  console.log(`[Shopify Sync] Updated variant ${pkg.shopifyVariantId} price to ${numericPrice}`);
+                }
+              }
+            }
+          }
+        }
+      } catch (syncError) {
+        console.error("[Shopify Sync Error]:", syncError);
+      }
+    }
 
     return withCORS(
       NextResponse.json({ success: true, data: options }, { status: 200 }),
