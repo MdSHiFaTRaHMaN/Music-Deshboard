@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useToast } from "@/components/ui/toast/Toast";
 
 // Failed statuses from the real SunoAPI
-const LYRICS_FAILED_STATUSES = ["CREATE_TASK_FAILED", "GENERATE_LYRICS_FAILED", "CALLBACK_EXCEPTION", "SENSITIVE_WORD_ERROR"];
+const LYRICS_FAILED_STATUSES = ["CREATE_TASK_FAILED", "GENERATE_LYRICS_FAILED", "GENERATE_LYRIC_FAILED", "CALLBACK_EXCEPTION", "SENSITIVE_WORD_ERROR"];
 const MUSIC_FAILED_STATUSES = ["CREATE_TASK_FAILED", "GENERATE_AUDIO_FAILED", "CALLBACK_EXCEPTION", "SENSITIVE_WORD_ERROR"];
 // Music SUCCESS includes FIRST_SUCCESS (first track ready) and SUCCESS (all tracks ready)
 const MUSIC_SUCCESS_STATUSES = ["FIRST_SUCCESS", "SUCCESS"];
