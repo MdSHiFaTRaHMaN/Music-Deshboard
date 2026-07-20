@@ -68,9 +68,10 @@ export function checkAbandonedCart(orderId, taskId, email, resumeBaseUrl) {
             status: track.status,
           }));
 
+          let updateObj = {};
           // Only update tracks if they haven't been updated yet (e.g. by frontend poll)
           if (!order.musicTracks || order.musicTracks.length === 0) {
-            order.musicTracks = tracks;
+            updateObj.musicTracks = tracks;
           }
           
           console.log(`[AbandonedCart] Order ${orderId} completed generation. Tracks saved to DB.`);
@@ -85,13 +86,15 @@ export function checkAbandonedCart(orderId, taskId, email, resumeBaseUrl) {
 
           if (newerOrder) {
             console.log(`[AbandonedCart] User regenerated (newer order ${newerOrder._id} exists). Aborting email for ${orderId}.`);
-            await order.save();
+            if (Object.keys(updateObj).length > 0) {
+               await Order.updateOne({ _id: order._id }, { $set: updateObj });
+            }
             return;
           }
 
           // Always send the email immediately when ready, regardless of tab state.
-          order.resumeEmailSent = true;
-          await order.save();
+          updateObj.resumeEmailSent = true;
+          await Order.updateOne({ _id: order._id }, { $set: updateObj });
           
           // Trigger Klaviyo Event IMMEDIATELY when ready
           if (settings.klaviyoApiKey) {

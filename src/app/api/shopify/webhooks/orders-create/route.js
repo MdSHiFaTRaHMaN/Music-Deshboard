@@ -100,9 +100,10 @@ export async function POST(request) {
         }).sort({ createdAt: -1 }).limit(itemsToFulfill);
 
         for (const fOrder of fallbackOrders) {
-          fOrder.status = newStatus;
-          fOrder.shopifyOrderId = orderData.id;
-          await fOrder.save();
+          await Order.updateOne(
+            { _id: fOrder._id },
+            { $set: { status: newStatus, shopifyOrderId: orderData.id } }
+          );
           console.log(`[Shopify Webhook] Fallback: updated ${fOrder._id} for ${orderData.email} → ${newStatus}`);
         }
       }
@@ -118,38 +119,8 @@ export async function POST(request) {
             // Tracks already in DB — send delivery email immediately
             await sendDeliveryEmail(localOrders, settings, orderData);
           } else if (anyUnsent) {
-            // Tracks not ready yet (generation still in progress) — retry every 15s for up to 10 minutes
-            console.log(`[Shopify Webhook] Tracks not ready yet for order ${orderData.id}. Starting retry polling...`);
-            const shopifyOrderId = orderData.id;
-            const shopifyEmail = orderData.email;
-            const shopifyOrderNumber = orderData.order_number;
-            let retries = 0;
-            const maxRetries = 40; // 40 * 15s = 10 minutes
-            const retryInterval = setInterval(async () => {
-              retries++;
-              if (retries > maxRetries) {
-                console.log(`[Shopify Webhook] Delivery retry timed out for Shopify order ${shopifyOrderId}.`);
-                clearInterval(retryInterval);
-                return;
-              }
-              try {
-                const { default: dbConnect } = await import("@/lib/mongoose");
-                await dbConnect();
-                const { default: Order } = await import("@/models/Order");
-                const retryOrders = await Order.find({ shopifyOrderId: shopifyOrderId });
-                const retryAllReady = retryOrders.length > 0 && retryOrders.every(o => o.musicTracks && o.musicTracks.length > 0 && o.musicTracks[0].audioUrl);
-                const retryAnyUnsent = retryOrders.some(o => !o.deliveryEmailSent);
-                if (retryAllReady && retryAnyUnsent) {
-                  clearInterval(retryInterval);
-                  const { getSettings } = await import("@/lib/getSettings");
-                  const retrySettings = await getSettings();
-                  await sendDeliveryEmail(retryOrders, retrySettings, { id: shopifyOrderId, email: shopifyEmail, order_number: shopifyOrderNumber });
-                  console.log(`[Shopify Webhook] Delivery email sent on retry #${retries} for order ${shopifyOrderId}.`);
-                }
-              } catch (retryErr) {
-                console.error(`[Shopify Webhook] Retry error for ${shopifyOrderId}:`, retryErr);
-              }
-            }, 15 * 1000);
+            // Tracks not ready yet. The worker will handle sending the email when generation completes.
+            console.log(`[Shopify Webhook] Tracks not ready yet for order ${orderData.id}. Worker will fulfill when ready.`);
           }
         }
       }

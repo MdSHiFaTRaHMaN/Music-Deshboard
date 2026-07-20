@@ -83,9 +83,10 @@ export async function POST(request) {
         }).sort({ createdAt: -1 }).limit(itemsToFulfill);
 
         for (const fOrder of fallbackOrders) {
-          fOrder.status = financialStatus;
-          fOrder.shopifyOrderId = shopifyOrder.id;
-          await fOrder.save();
+          await Order.updateOne(
+            { _id: fOrder._id },
+            { $set: { status: financialStatus, shopifyOrderId: shopifyOrder.id } }
+          );
           updatedCount++;
         }
         if (fallbackOrders.length > 0) {

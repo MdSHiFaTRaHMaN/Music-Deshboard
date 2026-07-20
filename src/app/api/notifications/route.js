@@ -32,7 +32,7 @@ export async function PUT(request) {
     }
 
     if (data.notificationId) {
-      await Notification.findByIdAndUpdate(data.notificationId, { $set: { isRead: true } });
+      await Notification.findByIdAndUpdate(data.notificationId, { $set: { isRead: true } }, { returnDocument: 'after' });
       return NextResponse.json({ message: "Notification marked as read" }, { status: 200 });
     }
 
