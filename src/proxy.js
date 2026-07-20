@@ -15,7 +15,6 @@ export async function proxy(request) {
   // Paths that are ALWAYS public (App & Shopify)
   const alwaysPublicPaths = [
     "/signin",
-    "/signup",
     "/api/auth/login",
     "/api/auth/shopify-callback", // Keep Shopify app authentication working
     "/api/shopify/webhooks", // Allow Shopify webhooks

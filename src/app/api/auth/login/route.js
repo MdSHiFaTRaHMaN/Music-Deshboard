@@ -33,9 +33,29 @@ export async function POST(request) {
     user.lastLogin = new Date();
     await user.save();
 
-    // 5. Generate token
+    // 5. Handle 2FA interception
     const secret = new TextEncoder().encode(process.env.JWT_SECRET || "super-secret-fallback-key-change-me");
-    
+
+    if (user.isTwoFactorEnabled) {
+      // Issue a temporary token for the 2FA step (expires in 5 minutes)
+      const tempToken = await new SignJWT({ 
+        tempAuth: true,
+        id: user._id.toString(),
+        keepLoggedIn: keepLoggedIn 
+      })
+        .setProtectedHeader({ alg: "HS256" })
+        .setIssuedAt()
+        .setExpirationTime("5m")
+        .sign(secret);
+
+      return NextResponse.json({ 
+        requires2FA: true, 
+        tempToken,
+        message: "2-Step Verification required" 
+      }, { status: 200 });
+    }
+
+    // 6. Generate final token if no 2FA
     // Expire in 30 days if keepLoggedIn is true, else 1 day
     const expiresInDays = keepLoggedIn ? 30 : 1;
     

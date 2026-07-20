@@ -13,7 +13,6 @@ export default function UserInfoCard() {
   
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
     phone: "",
     bio: "",
     socialLinks: {
@@ -30,7 +29,6 @@ export default function UserInfoCard() {
     if (user) {
       setFormData({
         name: user.name || "",
-        email: user.email || "",
         phone: user.phone || "",
         bio: user.bio || "",
         socialLinks: {
@@ -236,13 +234,12 @@ export default function UserInfoCard() {
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>Email Address</Label>
+                    <Label>Email Address (Edit in Security)</Label>
                     <Input 
                       type="email" 
                       name="email" 
-                      value={formData.email} 
-                      onChange={handleChange} 
-                      required 
+                      value={user.email || ""} 
+                      disabled
                     />
                   </div>
 

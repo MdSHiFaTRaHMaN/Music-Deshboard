@@ -17,6 +17,10 @@ export default function SignInForm() {
   const [isChecked, setIsChecked] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [tempToken, setTempToken] = useState("");
+  const [twoFactorCode, setTwoFactorCode] = useState("");
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -32,13 +36,45 @@ export default function SignInForm() {
 
       const data = await res.json();
       if (res.ok) {
-        // Fetch the user data so the context is updated
+        if (data.requires2FA) {
+          setRequires2FA(true);
+          setTempToken(data.tempToken);
+        } else {
+          // Fetch the user data so the context is updated
+          await fetchUser();
+          // Redirect to dashboard
+          router.push("/");
+          router.refresh();
+        }
+      } else {
+        setError(data.error || "Login failed");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify2FA = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/auth/login/verify-2fa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tempToken, code: twoFactorCode })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
         await fetchUser();
-        // Redirect to dashboard
         router.push("/");
         router.refresh();
       } else {
-        setError(data.error || "Login failed");
+        setError(data.error || "Invalid 2FA code");
       }
     } catch (err) {
       setError("An unexpected error occurred");
@@ -124,56 +160,90 @@ export default function SignInForm() {
                 </span>
               </div>
             </div> */}
-            <form onSubmit={handleLogin}>
-              <div className="space-y-6">
-                {error && <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg">{error}</div>}
-                <div>
-                  <Label>
-                    Email <span className="text-error-500">*</span>{" "}
-                  </Label>
-                  <Input 
-                    placeholder="admin@example.com" 
-                    type="email" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label>
-                    Password <span className="text-error-500">*</span>{" "}
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      type="password"
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+            {requires2FA ? (
+              <form onSubmit={handleVerify2FA}>
+                <div className="space-y-6">
+                  {error && <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg">{error}</div>}
+                  <div>
+                    <Label>
+                      2-Step Verification Code <span className="text-error-500">*</span>{" "}
+                    </Label>
+                    <Input 
+                      placeholder="Enter 6-digit code" 
+                      type="text" 
+                      value={twoFactorCode}
+                      onChange={(e) => setTwoFactorCode(e.target.value)}
                       required
                     />
                   </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Checkbox checked={isChecked} onChange={setIsChecked} />
-                    <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
-                      Keep me logged in
-                    </span>
+                  <div>
+                    <Button type="submit" className="w-full" size="sm" disabled={loading}>
+                      {loading ? "Verifying..." : "Verify Code"}
+                    </Button>
                   </div>
-                  <Link
-                    href="/reset-password"
-                    className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
-                  >
-                    Forgot password?
-                  </Link>
+                  <div className="text-center">
+                    <button 
+                      type="button" 
+                      onClick={() => setRequires2FA(false)} 
+                      className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
+                    >
+                      Back to login
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <Button type="submit" className="w-full" size="sm" disabled={loading}>
-                    {loading ? "Signing in..." : "Sign in"}
-                  </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleLogin}>
+                <div className="space-y-6">
+                  {error && <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg">{error}</div>}
+                  <div>
+                    <Label>
+                      Email <span className="text-error-500">*</span>{" "}
+                    </Label>
+                    <Input 
+                      placeholder="admin@example.com" 
+                      type="email" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label>
+                      Password <span className="text-error-500">*</span>{" "}
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        type="password"
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Checkbox checked={isChecked} onChange={setIsChecked} />
+                      <span className="block font-normal text-gray-700 text-theme-sm dark:text-gray-400">
+                        Keep me logged in
+                      </span>
+                    </div>
+                    <Link
+                      href="/reset-password"
+                      className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <div>
+                    <Button type="submit" className="w-full" size="sm" disabled={loading}>
+                      {loading ? "Signing in..." : "Sign in"}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </form>
+              </form>
+            )}
 
           </div>
         </div>
