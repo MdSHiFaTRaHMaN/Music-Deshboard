@@ -98,10 +98,12 @@ export default function SignInForm() {
         <div>
           <div className="mb-5 sm:mb-8">
             <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
-              Sign In
+              {requires2FA ? "Two-Step Verification" : "Sign In"}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Enter your email and password to sign in!
+              {requires2FA 
+                ? "Open your Authenticator app and enter the 6-digit code." 
+                : "Enter your email and password to sign in!"}
             </p>
           </div>
           <div>
