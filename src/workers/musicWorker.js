@@ -23,11 +23,11 @@ async function downloadFile(url, destPath) {
   await pipeline(response.body, destStream);
 }
 
-function createPreview(inputPath, outputPath) {
+function createPreview(inputPath, outputPath, durationSeconds) {
   return new Promise((resolve, reject) => {
     ffmpeg(inputPath)
       .setStartTime("00:00:15") // Start preview at 15s
-      .setDuration("45") // 45 seconds long
+      .setDuration(durationSeconds.toString()) // Dynamic duration
       .output(outputPath)
       .on('end', resolve)
       .on('error', reject)
@@ -61,6 +61,8 @@ export const worker = new Worker("music-generation", async (job) => {
   console.log(`[Worker] Processing job for taskId: ${taskId}, orderId: ${orderId}`);
 
   await dbConnect();
+  const settings = await getSettings();
+  const previewDuration = settings?.previewDurationSeconds || 45;
 
   try {
     // 1. Hit Suno to start generation
@@ -101,7 +103,7 @@ export const worker = new Worker("music-generation", async (job) => {
       await downloadFile(track.audioUrl, fullPath);
       
       console.log(`[Worker] Creating preview for track ${track.id}...`);
-      await createPreview(fullPath, previewPath);
+      await createPreview(fullPath, previewPath, previewDuration);
       
       console.log(`[Worker] Uploading to S3 for track ${track.id}...`);
       const s3FullKey = `music/${orderId}/${crypto.randomUUID()}.mp3`;

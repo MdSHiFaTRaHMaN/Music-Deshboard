@@ -16,6 +16,14 @@ const CustomerSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    blockedUntil: {
+      type: Date,
+      default: null,
+    },
+    blockCount: {
+      type: Number,
+      default: 0,
+    },
     knownIps: {
       type: [String],
       default: [],

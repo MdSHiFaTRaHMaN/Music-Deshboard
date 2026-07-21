@@ -13,6 +13,16 @@ const SettingsSchema = new mongoose.Schema(
     contactPhone: { type: String, default: "" },
     monthlyTarget: { type: Number, default: 20000 },
     klaviyoApiKey: { type: String, default: "" },
+    
+    // Limits & Security
+    previewDurationSeconds: { type: Number, default: 45 },
+    rateLimitPerMinute: { type: Number, default: 0 },
+    rateLimitPerHour: { type: Number, default: 0 },
+    rateLimitPerDay: { type: Number, default: 10 },
+    rateLimitPerMonth: { type: Number, default: 0 },
+    autoBlockEnabled: { type: Boolean, default: false },
+    autoBlockGenerationCount: { type: Number, default: 5 },
+    autoBlockRequiredPurchases: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

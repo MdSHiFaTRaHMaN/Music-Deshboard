@@ -8,7 +8,7 @@ import { withCORS, handleOptions } from "@/lib/cors";
 import { checkAbandonedCart } from "@/lib/abandonedCartChecker";
 import { encryptTaskId } from "@/lib/encryption";
 import { musicQueue } from "@/lib/queue";
-import { verifyTurnstile, checkRateLimit, checkDailyGenerationLimit } from "@/lib/security";
+import { verifyTurnstile, checkRateLimit, checkUserRateLimits } from "@/lib/security";
 
 // Preflight — the browser sends this automatically before the real POST.
 export async function OPTIONS(request) {
@@ -72,6 +72,16 @@ export async function POST(request) {
     const reqBody = JSON.parse(bodyText);
     const { lyrics, title, style, formData, hp_website, turnstileToken, resumeBaseUrl, visitorId } = reqBody;
 
+    if (!lyrics) {
+      return withCORS(NextResponse.json({ error: "Lyrics are required" }, { status: 400 }), origin);
+    }
+    if (!formData || !formData.email) {
+      return withCORS(
+        NextResponse.json({ error: "Email is required to save the generated order" }, { status: 400 }),
+        origin
+      );
+    }
+
     // Helper to log suspicious behavior and IP
     const flagCustomer = async (email) => {
       if (!email) return;
@@ -90,6 +100,25 @@ export async function POST(request) {
       }
     };
 
+    // ── Security: Check if Customer is Blocked (by Email or IP) ──
+    await dbConnect();
+    let customer = await Customer.findOne({
+      $or: [
+        { email: formData?.email },
+        { knownIps: ip }
+      ]
+    });
+    
+    if (customer) {
+      if (customer.isBlocked) {
+        const reason = customer.blockReason || "Your account has been restricted from generating music.";
+        return withCORS(NextResponse.json({ error: reason }, { status: 403 }), origin);
+      }
+      if (customer.blockedUntil && new Date() < new Date(customer.blockedUntil)) {
+        return withCORS(NextResponse.json({ error: "Your account is temporarily blocked for 24 hours due to excessive generations." }, { status: 403 }), origin);
+      }
+    }
+
     // ── Security: Honeypot Check ──
     if (hp_website) {
       console.warn("[Security] Bot detected via honeypot.");
@@ -107,45 +136,49 @@ export async function POST(request) {
       return withCORS(NextResponse.json({ error: "Human verification failed. Please refresh the page and try again." }, { status: 400 }), origin);
     }
 
-    // ── Security: Rate Limiting ──
-    const isRateAllowed = await checkRateLimit(ip, visitorId, 5, 3600); // 5 requests per hour
+    // ── Security: Basic IP Rate Limiting (Prevents API abuse before Email checks) ──
+    const isRateAllowed = await checkRateLimit(ip, visitorId, 60, 3600); // Allow reasonable API hits
     if (!isRateAllowed) {
-      await flagCustomer(formData?.email);
-      return withCORS(NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 }), origin);
+      return withCORS(NextResponse.json({ error: "Too many requests from your IP. Please try again later." }, { status: 429 }), origin);
     }
 
-    if (!lyrics) {
-      return withCORS(NextResponse.json({ error: "Lyrics are required" }, { status: 400 }), origin);
-    }
-    if (!formData || !formData.email) {
-      return withCORS(
-        NextResponse.json({ error: "Email is required to save the generated order" }, { status: 400 }),
-        origin
-      );
-    }
-
-    // ── Security: Check if Customer is Blocked (by Email or IP) ──
-    await dbConnect();
-    const customer = await Customer.findOne({
-      $or: [
-        { email: formData?.email },
-        { knownIps: ip }
-      ]
-    });
-    
-    if (customer && customer.isBlocked) {
-      const reason = customer.blockReason || "Your account has been restricted from generating music.";
-      return withCORS(
-        NextResponse.json({ error: reason }, { status: 403 }),
-        origin
-      );
-    }
-
-    // ── Security: Daily Generation Limit ──
-    const isDailyAllowed = await checkDailyGenerationLimit(formData.email, 10); // 10 generations per day
-    if (!isDailyAllowed) {
+    // ── Security: Dynamic Granular User Limits ──
+    const isUserAllowed = await checkUserRateLimits(formData.email, settings);
+    if (!isUserAllowed) {
       await flagCustomer(formData.email);
-      return withCORS(NextResponse.json({ error: "Daily generation limit reached for this email." }, { status: 429 }), origin);
+      return withCORS(NextResponse.json({ error: "You have reached your music generation limit. Please wait before generating more." }, { status: 429 }), origin);
+    }
+
+    // ── Security: Auto-Block System ──
+    if (settings.autoBlockEnabled) {
+      const totalGenerations = await Order.countDocuments({ email: formData.email });
+      const totalPurchases = await Order.countDocuments({ email: formData.email, status: "paid" });
+      
+      if (totalGenerations >= settings.autoBlockGenerationCount && totalPurchases <= settings.autoBlockRequiredPurchases) {
+        // Violating Auto-block limits
+        const blockReason = "Excessive generations without purchases";
+        const blockCount = (customer?.blockCount || 0) + 1;
+        
+        let updateData = { blockReason, blockCount };
+        
+        if (blockCount >= 2) {
+          // Permanent block
+          updateData.isBlocked = true;
+          console.warn(`[Auto-Block] Permanently blocked ${formData.email}`);
+        } else {
+          // 24 Hour block
+          updateData.blockedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+          console.warn(`[Auto-Block] Temporarily blocked ${formData.email} for 24h`);
+        }
+        
+        await Customer.findOneAndUpdate(
+          { email: formData.email },
+          { $set: updateData },
+          { upsert: true }
+        );
+        
+        return withCORS(NextResponse.json({ error: blockCount >= 2 ? "Your account has been restricted." : "You have reached your limit. Your account is temporarily blocked for 24 hours." }, { status: 403 }), origin);
+      }
     }
 
     // POST /api/v1/generate — required fields: customMode, instrumental, callBackUrl, model

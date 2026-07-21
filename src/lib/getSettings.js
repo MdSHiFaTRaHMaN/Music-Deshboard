@@ -81,6 +81,16 @@ export async function getSettings() {
     contactPhone: settings?.contactPhone || "",
     monthlyTarget: settings?.monthlyTarget || 20000,
     klaviyoApiKey: settings?.klaviyoApiKey || process.env.KLAVIYO_API_KEY || "",
+    
+    // Limits & Security
+    previewDurationSeconds: settings?.previewDurationSeconds ?? 45,
+    rateLimitPerMinute: settings?.rateLimitPerMinute ?? 0,
+    rateLimitPerHour: settings?.rateLimitPerHour ?? 0,
+    rateLimitPerDay: settings?.rateLimitPerDay ?? 10,
+    rateLimitPerMonth: settings?.rateLimitPerMonth ?? 0,
+    autoBlockEnabled: settings?.autoBlockEnabled ?? false,
+    autoBlockGenerationCount: settings?.autoBlockGenerationCount ?? 5,
+    autoBlockRequiredPurchases: settings?.autoBlockRequiredPurchases ?? 0,
   };
   cacheTime = now;
 
