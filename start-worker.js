@@ -1,7 +1,8 @@
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 dotenv.config(); // Fallback to .env if something is there
-import { worker } from "./src/workers/musicWorker.js";
+
+const { worker } = await import("./src/workers/musicWorker.js");
 
 console.log("Starting background worker for music generation...");
 
