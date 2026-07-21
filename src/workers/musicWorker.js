@@ -37,7 +37,7 @@ function createPreview(inputPath, outputPath, durationSeconds) {
 
 // Polling helper
 async function pollSuno(taskId, apiKey, apiBase) {
-  const maxAttempts = 120; // up to 10 mins (120 * 5s)
+  const maxAttempts = 360; // up to 30 mins (360 * 5s)
   for (let i = 0; i < maxAttempts; i++) {
     const res = await fetch(`${apiBase}/api/v1/generate/record-info?taskId=${taskId}`, {
       headers: { "Authorization": `Bearer ${apiKey}` },
