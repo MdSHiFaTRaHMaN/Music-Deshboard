@@ -42,7 +42,7 @@ async function pollSuno(taskId, apiKey, apiBase) {
     const data = await res.json();
     const status = data.data?.status;
     
-    if (["SUCCESS", "FIRST_SUCCESS"].includes(status)) {
+    if (status === "SUCCESS") {
       return data.data;
     } else if (["CREATE_TASK_FAILED", "GENERATE_AUDIO_FAILED", "CALLBACK_EXCEPTION"].includes(status)) {
       throw new Error(`Suno API failed with status: ${status}`);
