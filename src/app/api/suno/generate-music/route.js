@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import Order from "@/models/Order";
 import Notification from "@/models/Notification";
+import Customer from "@/models/Customer";
 import { getSettings } from "@/lib/getSettings";
 import { withCORS, handleOptions } from "@/lib/cors";
 import { checkAbandonedCart } from "@/lib/abandonedCartChecker";
 import { encryptTaskId } from "@/lib/encryption";
+import { musicQueue } from "@/lib/queue";
+import { verifyTurnstile, checkRateLimit, checkDailyGenerationLimit } from "@/lib/security";
 
 // Preflight — the browser sends this automatically before the real POST.
 export async function OPTIONS(request) {
@@ -59,7 +62,49 @@ export async function POST(request) {
       );
     }
 
-    const { lyrics, style, title, formData, resumeBaseUrl } = await request.json();
+    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown-ip";
+
+    // Helper to log suspicious behavior and IP
+    const flagCustomer = async (email) => {
+      if (!email) return;
+      try {
+        await dbConnect();
+        await Customer.findOneAndUpdate(
+          { email },
+          { 
+            $inc: { securityFlags: 1 },
+            $addToSet: { knownIps: ip }
+          },
+          { upsert: true }
+        );
+      } catch (e) {
+        console.error("Failed to flag customer", e);
+      }
+    };
+
+    // ── Security: Honeypot Check ──
+    if (hp_website) {
+      console.warn("[Security] Bot detected via honeypot.");
+      await flagCustomer(formData?.email);
+      return withCORS(NextResponse.json({ error: "Invalid request format." }, { status: 400 }), origin);
+    }
+
+    // ── Security: Turnstile Verification ──
+    if (!turnstileToken) {
+      return withCORS(NextResponse.json({ error: "Please wait a moment for the security check to load, or verify you are human before continuing." }, { status: 400 }), origin);
+    }
+    const isHuman = await verifyTurnstile(turnstileToken);
+    if (!isHuman) {
+      await flagCustomer(formData?.email);
+      return withCORS(NextResponse.json({ error: "Human verification failed. Please refresh the page and try again." }, { status: 400 }), origin);
+    }
+
+    // ── Security: Rate Limiting ──
+    const isRateAllowed = await checkRateLimit(ip, visitorId, 5, 3600); // 5 requests per hour
+    if (!isRateAllowed) {
+      await flagCustomer(formData?.email);
+      return withCORS(NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 }), origin);
+    }
 
     if (!lyrics) {
       return withCORS(NextResponse.json({ error: "Lyrics are required" }, { status: 400 }), origin);
@@ -69,6 +114,30 @@ export async function POST(request) {
         NextResponse.json({ error: "Email is required to save the generated order" }, { status: 400 }),
         origin
       );
+    }
+
+    // ── Security: Check if Customer is Blocked (by Email or IP) ──
+    await dbConnect();
+    const customer = await Customer.findOne({
+      $or: [
+        { email: formData?.email },
+        { knownIps: ip }
+      ]
+    });
+    
+    if (customer && customer.isBlocked) {
+      const reason = customer.blockReason || "Your account has been restricted from generating music.";
+      return withCORS(
+        NextResponse.json({ error: reason }, { status: 403 }),
+        origin
+      );
+    }
+
+    // ── Security: Daily Generation Limit ──
+    const isDailyAllowed = await checkDailyGenerationLimit(formData.email, 10); // 10 generations per day
+    if (!isDailyAllowed) {
+      await flagCustomer(formData.email);
+      return withCORS(NextResponse.json({ error: "Daily generation limit reached for this email." }, { status: 429 }), origin);
     }
 
     // POST /api/v1/generate — required fields: customMode, instrumental, callBackUrl, model
@@ -90,34 +159,13 @@ export async function POST(request) {
       callBackUrl,          // required by API
     };
 
-    console.log("[generate-music] Sending body:", JSON.stringify(body));
+    console.log("[generate-music] Enqueuing job for generation:", formData.email);
 
-    const response = await fetch(`${settings.sunoApiBase}/api/v1/generate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(body),
-    });
+    // Instead of hitting Suno directly, we enqueue a job.
+    // We generate a local taskId since Suno won't give us one until the worker hits it.
+    const taskId = crypto.randomUUID();
 
-    // Response shape: { code: 200, msg: "success", data: { taskId: "..." } }
-    const data = await response.json();
-    console.log("[generate-music] Response:", JSON.stringify(data));
-
-    if (data.code !== 200) {
-      return withCORS(
-        NextResponse.json(
-          { error: data.msg || "Failed to start music generation" },
-          { status: 400 }
-        ),
-        origin
-      );
-    }
-
-    const taskId = data.data?.taskId;
-
-    // Save pending order to Database
+    // Save pending order to Database FIRST, before pushing to queue, so the worker can find it.
     if (taskId) {
       try {
         await dbConnect();
@@ -134,6 +182,13 @@ export async function POST(request) {
           status: "created"
         });
 
+        // Add IP to knownIps for Customer
+        await Customer.findOneAndUpdate(
+          { email: formData.email },
+          { $addToSet: { knownIps: ip } },
+          { upsert: true }
+        );
+
         // Create a notification
         await Notification.create({
           title: "Music Generation Started",
@@ -146,8 +201,23 @@ export async function POST(request) {
           checkAbandonedCart(newOrder._id, taskId, formData.email, resumeBaseUrl);
         }
 
+        // Add job to BullMQ
+        await musicQueue.add("generate-suno", {
+          taskId,
+          orderId: newOrder._id,
+          sunoBody: body,
+          apiKey: apiKey,
+          apiBase: settings.sunoApiBase,
+        }, {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5000 },
+          removeOnComplete: true,
+          removeOnFail: false
+        });
+
       } catch (dbErr) {
-        console.error("[generate-music] DB Error:", dbErr);
+        console.error("[generate-music] DB Error or Queue Error:", dbErr);
+        return withCORS(NextResponse.json({ error: "Failed to process request." }, { status: 500 }), origin);
       }
     }
 

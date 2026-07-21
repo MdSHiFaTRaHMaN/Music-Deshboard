@@ -6,7 +6,7 @@ import { LuLayoutGrid, LuSettings } from "react-icons/lu";
 import { RiMusicAiLine } from "react-icons/ri";
 import { BsCartPlus } from "react-icons/bs";
 import { BiPurchaseTag } from "react-icons/bi";
-import { MdFormatListBulletedAdd } from "react-icons/md";
+import { MdFormatListBulletedAdd, MdOutlineManageAccounts } from "react-icons/md";
 import { FiUsers, FiUserPlus } from "react-icons/fi";
 import { FaRegCircleUser } from "react-icons/fa6";
 import { HiSparkles } from "react-icons/hi2";
@@ -59,6 +59,12 @@ const ALL_ROUTES = [
     keywords: ["form", "elements", "inputs", "fields"],
   },
   {
+    label: "Customers CRM",
+    path: "/customers",
+    icon: <MdOutlineManageAccounts />,
+    keywords: ["customers", "crm", "customer relationship management"],
+  },
+  {
     label: "All Users",
     path: "/users",
     icon: <FiUsers />,
@@ -90,7 +96,7 @@ export default function GlobalSearch() {
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  
+
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
   const router = useRouter();
@@ -122,15 +128,15 @@ export default function GlobalSearch() {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
-        dropdownRef.current && 
+        dropdownRef.current &&
         !dropdownRef.current.contains(event.target) &&
-        inputRef.current && 
+        inputRef.current &&
         !inputRef.current.contains(event.target)
       ) {
         setIsOpen(false);
       }
     };
-    
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -142,7 +148,7 @@ export default function GlobalSearch() {
         setResults([]);
         return;
       }
-      
+
       setIsLoading(true);
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
@@ -168,14 +174,14 @@ export default function GlobalSearch() {
   const filteredLinks = q.length === 0
     ? QUICK_LINKS
     : ALL_ROUTES.filter((link) => {
-        const haystack = [
-          link.label.toLowerCase(),
-          link.path.toLowerCase(),
-          ...(link.keywords || []),
-        ].join(" ");
-        // Match if every whitespace-separated term appears in the haystack.
-        return q.split(/\s+/).every((term) => haystack.includes(term));
-      });
+      const haystack = [
+        link.label.toLowerCase(),
+        link.path.toLowerCase(),
+        ...(link.keywords || []),
+      ].join(" ");
+      // Match if every whitespace-separated term appears in the haystack.
+      return q.split(/\s+/).every((term) => haystack.includes(term));
+    });
 
   // Combine items for keyboard navigation
   const items = [
@@ -260,7 +266,7 @@ export default function GlobalSearch() {
           className="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 xl:w-[430px]"
         />
 
-        <button 
+        <button
           onClick={() => {
             inputRef.current?.focus();
             setIsOpen(true);
@@ -275,11 +281,12 @@ export default function GlobalSearch() {
 
       {/* Dropdown Menu */}
       {isOpen && (query.trim().length > 0 || filteredLinks.length > 0) && (
-        <div 
+        <div
           ref={dropdownRef}
           className="absolute top-full mt-2 w-full rounded-xl border border-gray-200 bg-white py-2 shadow-lg dark:border-gray-800 dark:bg-gray-900"
         >
-          <style dangerouslySetInnerHTML={{__html: `
+          <style dangerouslySetInnerHTML={{
+            __html: `
             .custom-search-scrollbar::-webkit-scrollbar {
               width: 6px;
             }
@@ -310,11 +317,10 @@ export default function GlobalSearch() {
                         <button
                           onClick={() => handleNavigate(link.path)}
                           onMouseEnter={() => setActiveIndex(globalIndex)}
-                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
-                            isActive 
-                              ? "bg-gray-100 text-brand-600 dark:bg-white/[0.1] dark:text-brand-400" 
+                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${isActive
+                              ? "bg-gray-100 text-brand-600 dark:bg-white/[0.1] dark:text-brand-400"
                               : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.05]"
-                          }`}
+                            }`}
                         >
                           <span className="text-lg">{link.icon}</span>
                           {link.label}
@@ -338,7 +344,7 @@ export default function GlobalSearch() {
                   <span>Orders</span>
                   {isLoading && <span className="animate-pulse">Searching...</span>}
                 </h4>
-                
+
                 {!isLoading && results.length === 0 ? (
                   <div className="px-3 py-4 text-center text-sm text-gray-500">
                     No orders found for &quot;{query}&quot;
@@ -348,21 +354,20 @@ export default function GlobalSearch() {
                     {results.map((order, idx) => {
                       const globalIndex = filteredLinks.length + idx;
                       const isActive = globalIndex === activeIndex;
-                      
+
                       // Using icons based on type
                       const isShopify = order.type === "shopify";
                       const OrderIcon = isShopify ? BiPurchaseTag : RiMusicAiLine;
-                      
+
                       return (
                         <li key={order._id} id={`search-item-${globalIndex}`}>
                           <button
                             onClick={() => handleNavigate(order.url)}
                             onMouseEnter={() => setActiveIndex(globalIndex)}
-                            className={`flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition ${
-                              isActive 
-                                ? "bg-gray-100 dark:bg-white/[0.1]" 
+                            className={`flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition ${isActive
+                                ? "bg-gray-100 dark:bg-white/[0.1]"
                                 : "hover:bg-gray-100 dark:hover:bg-white/[0.05]"
-                            }`}
+                              }`}
                           >
                             <div className="flex flex-col overflow-hidden gap-1">
                               <div className="flex items-center gap-2">

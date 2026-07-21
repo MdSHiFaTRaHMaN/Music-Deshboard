@@ -13,7 +13,7 @@ import {
 
 import logoImage from "../../public/images/logo/own-music-logo.png";
 import { FaChevronDown, FaRegCircleUser } from "react-icons/fa6";
-import { MdFormatListBulletedAdd } from "react-icons/md";
+import { MdFormatListBulletedAdd, MdOutlineManageAccounts } from "react-icons/md";
 import { RiMusicAiLine } from "react-icons/ri";
 import { FiUsers, FiSettings } from "react-icons/fi";
 
@@ -32,6 +32,11 @@ const navItems = [
     name: "Form Elements",
     icon: <MdFormatListBulletedAdd className="text-orange-500 text-xl" />,
     path: "/form-elements",
+  },
+  {
+    icon: <MdOutlineManageAccounts className="text-orange-500 text-xl" />,
+    name: "Customers CRM",
+    path: "/customers",
   },
   {
     name: "Musics",

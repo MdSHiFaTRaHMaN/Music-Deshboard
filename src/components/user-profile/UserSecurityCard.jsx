@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
@@ -25,6 +25,55 @@ export default function UserSecurityCard() {
   const [twoFactorStep, setTwoFactorStep] = useState(1);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [codeDigits, setCodeDigits] = useState(["", "", "", "", "", ""]);
+  const inputRefs = useRef([]);
+
+  const handleDigitChange = (index, value) => {
+    if (!/^\d*$/.test(value)) return;
+    const digit = value.slice(-1);
+    const newDigits = [...codeDigits];
+    newDigits[index] = digit;
+    setCodeDigits(newDigits);
+    setTwoFactorCode(newDigits.join(""));
+    
+    if (digit !== "" && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !codeDigits[index] && index > 0) {
+      const newDigits = [...codeDigits];
+      newDigits[index - 1] = "";
+      setCodeDigits(newDigits);
+      setTwoFactorCode(newDigits.join(""));
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleFocus = (index, e) => {
+    const firstEmptyIndex = inputRefs.current.findIndex(el => el && el.value === "");
+    if (firstEmptyIndex !== -1 && index > firstEmptyIndex) {
+      inputRefs.current[firstEmptyIndex]?.focus();
+    } else if (e && e.target) {
+      e.target.select();
+    }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pastedData) {
+      const newDigits = [...codeDigits];
+      for (let i = 0; i < pastedData.length; i++) {
+        newDigits[i] = pastedData[i];
+      }
+      setCodeDigits(newDigits);
+      setTwoFactorCode(newDigits.join(""));
+      const nextIndex = pastedData.length < 6 ? pastedData.length : 5;
+      inputRefs.current[nextIndex]?.focus();
+    }
+  };
   const [twoFactorLoading, setTwoFactorLoading] = useState(false);
   const [twoFactorMessage, setTwoFactorMessage] = useState({ type: "", text: "" });
   const [disablePassword, setDisablePassword] = useState("");
@@ -339,14 +388,24 @@ export default function UserSecurityCard() {
 
                   <div>
                     <Label>Verification Code</Label>
-                    <Input 
-                      type="text" 
-                      value={twoFactorCode} 
-                      onChange={(e) => setTwoFactorCode(e.target.value)} 
-                      required 
-                      placeholder="Enter 6-digit code"
-                      className="text-center text-lg tracking-widest"
-                    />
+                    <div className="flex justify-between gap-2 sm:gap-3 mt-1">
+                      {codeDigits.map((digit, index) => (
+                        <input
+                          key={index}
+                          ref={(el) => (inputRefs.current[index] = el)}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => handleDigitChange(index, e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(index, e)}
+                          onFocus={(e) => handleFocus(index, e)}
+                          onPaste={index === 0 ? handlePaste : undefined}
+                          className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-bold rounded-lg border border-gray-200 bg-transparent text-gray-800 outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-800 dark:text-white/90 dark:focus:border-brand-500"
+                          required
+                        />
+                      ))}
+                    </div>
                   </div>
                   
                   <div className="flex justify-end gap-3 mt-6">
