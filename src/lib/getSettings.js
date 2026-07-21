@@ -1,5 +1,5 @@
-import dbConnect from "@/lib/mongoose";
-import Settings from "@/models/Settings";
+import dbConnect from "./mongoose.js";
+import Settings from "../models/Settings.js";
 
 let cachedSettings = null;
 let cacheTime = 0;
