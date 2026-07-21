@@ -35,3 +35,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+custom-song-builder.liquid
+custom-song-builder.js
+custom-song-builder.css
