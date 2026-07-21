@@ -10,6 +10,9 @@ import Order from "../models/Order.js";
 import Notification from "../models/Notification.js";
 import { uploadToS3 } from "../lib/s3.js";
 import redis from "../lib/redis.js";
+import { getSettings } from "../lib/getSettings.js";
+import { sendKlaviyoMusicDelivery } from "../lib/klaviyo.js";
+import { fulfillShopifyOrder } from "../lib/shopifyFulfill.js";
 
 const TEMP_DIR = os.tmpdir();
 
@@ -139,9 +142,28 @@ export const worker = new Worker("music-generation", async (job) => {
       
       // If the order is already marked as paid, trigger Klaviyo now
       if (order.status === "paid" && !order.deliveryEmailSent) {
-        // Send webhook/email logic here, or the webhook endpoint will catch it on its next check.
-        // For now, let's keep it simple: the next time the webhook logic or admin panel looks, it'll see it's done.
-        console.log(`[Worker] Note: Order is paid. Delivery email logic will trigger on next sync.`);
+        console.log(`[Worker] Order is paid. Triggering Klaviyo and Shopify fulfillment...`);
+        try {
+          const settings = await getSettings();
+          if (settings.klaviyoApiKey) {
+            const klaviyoResult = await sendKlaviyoMusicDelivery(settings.klaviyoApiKey, order.email, [order], order.orderNumber);
+            if (klaviyoResult.success) {
+              order.deliveryEmailSent = true;
+              await order.save();
+              console.log(`[Worker] Successfully sent Klaviyo email for ${order.email}`);
+              
+              if (order.shopifyOrderId) {
+                await fulfillShopifyOrder(order.shopifyOrderId, settings);
+              }
+            } else {
+              console.error(`[Worker] Failed to send Klaviyo email: ${klaviyoResult.error}`);
+            }
+          } else {
+            console.warn(`[Worker] Klaviyo API key not found in settings.`);
+          }
+        } catch(e) {
+          console.error(`[Worker] Error triggering Klaviyo:`, e);
+        }
       }
     }
 
