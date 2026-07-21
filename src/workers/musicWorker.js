@@ -2,6 +2,7 @@ import { Worker } from "bullmq";
 import fs from "fs";
 import path from "path";
 import os from "os";
+import crypto from "crypto";
 import { pipeline } from "stream/promises";
 import ffmpeg from "fluent-ffmpeg";
 import dbConnect from "../lib/mongoose.js";
@@ -100,8 +101,8 @@ export const worker = new Worker("music-generation", async (job) => {
       await createPreview(fullPath, previewPath);
       
       console.log(`[Worker] Uploading to S3 for track ${track.id}...`);
-      const s3FullKey = `music/${orderId}/${track.id}_full.mp3`;
-      const s3PreviewKey = `music/${orderId}/${track.id}_preview.mp3`;
+      const s3FullKey = `music/${orderId}/${crypto.randomUUID()}.mp3`;
+      const s3PreviewKey = `music/${orderId}/${crypto.randomUUID()}.mp3`;
       
       await uploadToS3(fullPath, s3FullKey, "audio/mpeg");
       await uploadToS3(previewPath, s3PreviewKey, "audio/mpeg");
