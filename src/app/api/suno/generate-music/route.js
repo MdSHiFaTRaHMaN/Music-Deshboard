@@ -64,6 +64,14 @@ export async function POST(request) {
 
     const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown-ip";
 
+    // ── Parse Request Body ──
+    const bodyText = await request.text();
+    if (!bodyText) {
+      return withCORS(NextResponse.json({ error: "Empty request body" }, { status: 400 }), origin);
+    }
+    const reqBody = JSON.parse(bodyText);
+    const { lyrics, title, style, formData, hp_website, turnstileToken, resumeBaseUrl, visitorId } = reqBody;
+
     // Helper to log suspicious behavior and IP
     const flagCustomer = async (email) => {
       if (!email) return;
