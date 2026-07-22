@@ -171,6 +171,15 @@ export const worker = new Worker("music-generation", async (job) => {
 
   } catch (err) {
     console.error(`[Worker] Job failed for order ${orderId}:`, err);
+    try {
+      await dbConnect();
+      await Order.findByIdAndUpdate(orderId, {
+        status: "failed",
+        generationError: err.message || "Music generation failed",
+      });
+    } catch (e) {
+      console.error(`[Worker] Error updating order status to failed:`, e);
+    }
     throw err; // Let BullMQ handle retries
   }
 }, { 

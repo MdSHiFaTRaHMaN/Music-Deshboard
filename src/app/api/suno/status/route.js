@@ -43,6 +43,18 @@ export async function GET(request) {
         return withCORS(NextResponse.json({ status: "PENDING", tracks: [], isFullySaved: false }), origin);
       }
 
+      if (existingOrder.status === "failed") {
+        return withCORS(
+          NextResponse.json({
+            status: "FAILED",
+            error: existingOrder.generationError || "Music generation failed",
+            failed: true,
+            isFullySaved: false,
+          }),
+          origin
+        );
+      }
+
       const currentTracks = existingOrder.musicTracks || [];
       const allTracksReady = currentTracks.length > 0 && currentTracks.every(t => t.audioUrl && t.streamAudioUrl);
 

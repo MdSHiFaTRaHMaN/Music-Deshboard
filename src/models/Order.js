@@ -66,6 +66,10 @@ const OrderSchema = new mongoose.Schema(
       type: String,
       default: "created", // Initial state when generated but not added to cart
     },
+    generationError: {
+      type: String,
+      default: "",
+    },
   },
   { timestamps: true }
 );
