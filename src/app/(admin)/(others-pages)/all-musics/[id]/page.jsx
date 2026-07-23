@@ -52,6 +52,18 @@ export default async function MusicDetailPage({ params }) {
     }
   }
 
+  // Generate Presigned URLs for S3 keys
+  if (order.musicTracks && order.musicTracks.length > 0) {
+    for (const track of order.musicTracks) {
+      if (track.audioUrl && !track.audioUrl.startsWith("http")) {
+        track.audioUrl = await generatePresignedUrl(track.audioUrl, 604800); // 7 days
+      }
+      if (track.streamAudioUrl && !track.streamAudioUrl.startsWith("http")) {
+        track.streamAudioUrl = await generatePresignedUrl(track.streamAudioUrl, 604800);
+      }
+    }
+  }
+
   const serialized = JSON.parse(JSON.stringify(order));
   const selectedTrack = serialized.musicTracks?.find(t => t.id === serialized.selectedDemo) || serialized.musicTracks?.[0];
 

@@ -6,18 +6,21 @@ export default function ForceDownloadButton({ url, filename, className, children
 
     const handleDownload = async (e) => {
         e.preventDefault();
-        if (isDownloading) return;
+        if (isDownloading || !url) return;
         setIsDownloading(true);
 
+        const safeFilename = filename || "music.mp3";
+        const downloadApiUrl = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(safeFilename)}`;
+
         try {
-            const response = await fetch(url);
+            const response = await fetch(downloadApiUrl);
             if (!response.ok) throw new Error("Network response was not ok");
             const blob = await response.blob();
             const blobUrl = window.URL.createObjectURL(blob);
 
             const link = document.createElement("a");
             link.href = blobUrl;
-            link.download = filename || "music.mp3";
+            link.download = safeFilename;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -25,14 +28,8 @@ export default function ForceDownloadButton({ url, filename, className, children
             setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
         } catch (err) {
             console.error("Download failed:", err);
-            // Fallback: open in new tab if blob download fails due to CORS or network
-            const link = document.createElement("a");
-            link.href = url;
-            link.target = "_blank";
-            link.download = filename || "music.mp3";
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // Fallback: direct navigation to /api/download which sends attachment headers
+            window.location.href = downloadApiUrl;
         } finally {
             setIsDownloading(false);
         }

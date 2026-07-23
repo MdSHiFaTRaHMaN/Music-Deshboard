@@ -11,6 +11,7 @@ import DeliverMusicButton from "@/components/ecommerce/DeliverMusicButton";
 import FulfillmentManager from "@/components/ecommerce/FulfillmentManager";
 import { FiMusic, FiDownload } from "react-icons/fi";
 import ForceDownloadButton from "@/components/common/ForceDownloadButton";
+import { generatePresignedUrl } from "@/lib/s3";
 
 export const metadata = {
   title: "Shopify Order Details | Dashboard",
@@ -65,11 +66,21 @@ export default async function ShopifyOrderDetailsPage({ params }) {
                   selectedTrack = musicOrder.musicTracks[0];
                 }
 
+                let trackObj = selectedTrack ? JSON.parse(JSON.stringify(selectedTrack)) : null;
+                if (trackObj) {
+                  if (trackObj.audioUrl && !trackObj.audioUrl.startsWith("http")) {
+                    trackObj.audioUrl = await generatePresignedUrl(trackObj.audioUrl, 604800);
+                  }
+                  if (trackObj.streamAudioUrl && !trackObj.streamAudioUrl.startsWith("http")) {
+                    trackObj.streamAudioUrl = await generatePresignedUrl(trackObj.streamAudioUrl, 604800);
+                  }
+                }
+
                 matchedMusicInfo.push({
                   lineItemId: item.id,
                   musicId: musicIdProp.value,
                   orderId: musicOrder._id.toString(),
-                  track: selectedTrack ? JSON.parse(JSON.stringify(selectedTrack)) : null,
+                  track: trackObj,
                   mongoEmail: musicOrder.email
                 });
               }

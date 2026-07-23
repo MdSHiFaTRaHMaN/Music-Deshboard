@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { generatePresignedUrl } from "@/lib/s3";
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -21,7 +22,14 @@ export async function GET(request) {
   }
 
   try {
-    const response = await fetch(url);
+    let targetFetchUrl = url;
+
+    // If url is an S3 Key (e.g. "music/orderId/xyz.mp3"), generate S3 presigned URL automatically
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      targetFetchUrl = await generatePresignedUrl(url, 3600);
+    }
+
+    const response = await fetch(targetFetchUrl);
     if (!response.ok) {
       return new NextResponse("Failed to fetch audio from source", { status: 502 });
     }
