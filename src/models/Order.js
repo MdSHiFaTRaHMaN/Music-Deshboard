@@ -58,6 +58,7 @@ const OrderSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    resumeBaseUrl: String,
     lastPolledAt: {
       type: Date,
       default: Date.now,

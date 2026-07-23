@@ -220,6 +220,7 @@ export async function POST(request) {
           voice: formData.voice,
           mood: formData.mood,
           lyrics: formData.lyrics || lyrics,
+          resumeBaseUrl: resumeBaseUrl || "",
           status: "created"
         });
 

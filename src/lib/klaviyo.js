@@ -1,3 +1,5 @@
+import { generatePresignedUrl } from "./s3.js";
+
 /**
  * Sends a custom event to Klaviyo to trigger the Music Delivery flow.
  * 
@@ -29,7 +31,7 @@ export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, orders, ord
   // The first valid order acts as the base for order-level properties
   const baseOrder = validOrders[0];
 
-  const items = validOrders.map(order => {
+  const items = await Promise.all(validOrders.map(async order => {
     let selectedTrack = order.musicTracks[0];
     if (order.selectedDemo) {
       const matchedTrack = order.musicTracks.find(t => t.id === order.selectedDemo);
@@ -37,6 +39,27 @@ export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, orders, ord
     }
 
     let rawLyrics = selectedTrack.lyrics || order.lyrics || "";
+    let rawAudioUrl = selectedTrack.audioUrl || order.musicTracks[0]?.audioUrl || "";
+    let sourceAudioUrl = rawAudioUrl;
+
+    // If rawAudioUrl is an S3 Key (e.g. "music/orderId/xyz.mp3"), generate a signed URL
+    if (rawAudioUrl && !rawAudioUrl.startsWith("http://") && !rawAudioUrl.startsWith("https://")) {
+      try {
+        sourceAudioUrl = await generatePresignedUrl(rawAudioUrl, 7 * 24 * 3600); // 7 days expiration
+      } catch (err) {
+        console.error("[Klaviyo] Failed to generate presigned S3 URL:", err);
+      }
+    }
+
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
+    const trackTitle = selectedTrack.title || order.musicTracks[0]?.title || "Custom Song";
+    const safeFilename = `${trackTitle}.mp3`;
+
+    // Direct download URL pointing to /api/download which sets Content-Disposition: attachment
+    let directDownloadUrl = sourceAudioUrl;
+    if (appUrl && sourceAudioUrl) {
+      directDownloadUrl = `${appUrl}/api/download?url=${encodeURIComponent(sourceAudioUrl)}&filename=${encodeURIComponent(safeFilename)}`;
+    }
 
     return {
       musicId: order.musicId || "",
@@ -44,12 +67,14 @@ export async function sendKlaviyoMusicDelivery(klaviyoApiKey, email, orders, ord
       forWho: order.forWho || "",
       genre: order.genre || "",
       orderNotes: order.orderNotes || "",
-      primaryAudioUrl: selectedTrack.audioUrl || "",
-      title: selectedTrack.title || order.musicTracks[0]?.title || "Custom Song",
+      primaryAudioUrl: directDownloadUrl, // Direct MP3 download link for email template
+      directDownloadUrl: directDownloadUrl,
+      streamAudioUrl: sourceAudioUrl,
+      title: trackTitle,
       imageUrl: selectedTrack.imageUrl || order.musicTracks[0]?.imageUrl || "",
       lyrics: rawLyrics,
     };
-  });
+  }));
 
   console.log(`[Klaviyo] Preparing to send email to ${email}. Number of items: ${items.length}`);
 

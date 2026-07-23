@@ -32,79 +32,33 @@ export function checkAbandonedCart(orderId, taskId, email, resumeBaseUrl) {
         return;
       }
       
-      const settings = await getSettings();
-      if (!settings.sunoApiBase) {
-        console.log("[AbandonedCart] sunoApiBase not set.");
-        clearInterval(intervalId);
-        return;
-      }
+      // Check if musicTracks have been saved to DB by worker
+      if (order.musicTracks && order.musicTracks.length > 0) {
+        clearInterval(intervalId); // Stop checking
 
-      // Check Suno status
-      const sunoRes = await fetch(`${settings.sunoApiBase}/api/v1/generate/record-info?taskId=${taskId}`, {
-        headers: {
-          "Authorization": `Bearer ${settings.sunoApiKey}`
+        // CRITICAL CHECK: Did the user hit "Regenerate"?
+        const newerOrder = await Order.findOne({
+          email: email,
+          createdAt: { $gt: order.createdAt }
+        });
+
+        if (newerOrder) {
+          console.log(`[AbandonedCart] User regenerated (newer order ${newerOrder._id} exists). Aborting email for ${orderId}.`);
+          return;
         }
-      });
-      const sunoData = await sunoRes.json();
 
-      const taskData = sunoData.data;
-      const status = taskData?.status;
-      const tracksRaw = taskData?.response?.sunoData || [];
-
-      if ((status === "SUCCESS" || status === "FIRST_SUCCESS") && tracksRaw.length > 0) {
-        // Check if all tracks have their audioUrl populated
-        const allReady = tracksRaw.every(t => t.audioUrl && t.duration);
-
-        if (allReady) {
-          clearInterval(intervalId); // Stop checking
-
-          const tracks = tracksRaw.map((track) => ({
-            id: track.id,
-            title: track.title,
-            imageUrl: track.imageUrl,
-            audioUrl: track.audioUrl,
-            streamAudioUrl: track.streamAudioUrl || track.audioUrl,
-            duration: track.duration,
-            status: track.status,
-          }));
-
-          let updateObj = {};
-          // Only update tracks if they haven't been updated yet (e.g. by frontend poll)
-          if (!order.musicTracks || order.musicTracks.length === 0) {
-            updateObj.musicTracks = tracks;
-          }
-          
-          console.log(`[AbandonedCart] Order ${orderId} completed generation. Tracks saved to DB.`);
-
-          // CRITICAL CHECK: Did the user hit "Regenerate"?
-          // If they created a newer order, we should completely ignore this older one
-          // to prevent sending them emails for abandoned/old versions of their songs.
-          const newerOrder = await Order.findOne({
-            email: email,
-            createdAt: { $gt: order.createdAt }
-          });
-
-          if (newerOrder) {
-            console.log(`[AbandonedCart] User regenerated (newer order ${newerOrder._id} exists). Aborting email for ${orderId}.`);
-            if (Object.keys(updateObj).length > 0) {
-               await Order.updateOne({ _id: order._id }, { $set: updateObj });
-            }
-            return;
-          }
-
-          // Always send the email immediately when ready, regardless of tab state.
-          updateObj.resumeEmailSent = true;
-          await Order.updateOne({ _id: order._id }, { $set: updateObj });
-          
-          // Trigger Klaviyo Event IMMEDIATELY when ready
-          if (settings.klaviyoApiKey) {
-            const resumeLink = `${resumeBaseUrl}?resumeOrder=${orderId}`;
-            await sendKlaviyoMusicReady(settings.klaviyoApiKey, email, order, resumeLink);
-            console.log(`[AbandonedCart] Klaviyo Music_Ready_To_Select event sent to ${email} (Immediately).`);
+        const settings = await getSettings();
+        if (settings.klaviyoApiKey) {
+          const baseUrl = order.resumeBaseUrl || resumeBaseUrl || settings.shopUrl1 || process.env.NEXT_PUBLIC_APP_URL || "";
+          const resumeLink = baseUrl ? `${baseUrl.replace(/\/$/, "")}?resumeOrder=${order._id}` : "";
+          const klaviyoResult = await sendKlaviyoMusicReady(settings.klaviyoApiKey, email, order, resumeLink);
+          if (klaviyoResult.success) {
+            await Order.updateOne({ _id: order._id }, { $set: { resumeEmailSent: true } });
+            console.log(`[AbandonedCart] Klaviyo Music_Ready_To_Select event sent to ${email}.`);
           }
         }
-      } else if (status && ["CREATE_TASK_FAILED", "GENERATE_AUDIO_FAILED", "CALLBACK_EXCEPTION", "SENSITIVE_WORD_ERROR"].includes(status)) {
-        console.log(`[AbandonedCart] Suno generation failed for ${taskId}. Status: ${status}`);
+      } else if (order.status === "failed") {
+        console.log(`[AbandonedCart] Music generation failed for order ${orderId}.`);
         clearInterval(intervalId);
       }
 

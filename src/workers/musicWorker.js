@@ -11,7 +11,7 @@ import Notification from "../models/Notification.js";
 import { uploadToS3 } from "../lib/s3.js";
 import redis from "../lib/redis.js";
 import { getSettings } from "../lib/getSettings.js";
-import { sendKlaviyoMusicDelivery } from "../lib/klaviyo.js";
+import { sendKlaviyoMusicDelivery, sendKlaviyoMusicReady } from "../lib/klaviyo.js";
 import { fulfillShopifyOrder } from "../lib/shopifyFulfill.js";
 
 const TEMP_DIR = os.tmpdir();
@@ -142,7 +142,7 @@ export const worker = new Worker("music-generation", async (job) => {
       });
       console.log(`[Worker] Order ${orderId} successfully completed and saved.`);
       
-      // If the order is already marked as paid, trigger Klaviyo now
+      // If the order is already marked as paid, trigger Klaviyo Music_Delivered now
       if (order.status === "paid" && !order.deliveryEmailSent) {
         console.log(`[Worker] Order is paid. Triggering Klaviyo and Shopify fulfillment...`);
         try {
@@ -165,6 +165,25 @@ export const worker = new Worker("music-generation", async (job) => {
           }
         } catch(e) {
           console.error(`[Worker] Error triggering Klaviyo:`, e);
+        }
+      } else if (order.status === "created" && !order.resumeEmailSent) {
+        // Unpaid order / demo song generated: Send Music_Ready_To_Select event to Klaviyo
+        try {
+          const settings = await getSettings();
+          if (settings.klaviyoApiKey) {
+            const baseUrl = order.resumeBaseUrl || settings.shopUrl1 || process.env.NEXT_PUBLIC_APP_URL || "";
+            const resumeLink = baseUrl ? `${baseUrl.replace(/\/$/, "")}?resumeOrder=${order._id}` : "";
+            if (resumeLink) {
+              const klaviyoResult = await sendKlaviyoMusicReady(settings.klaviyoApiKey, order.email, order, resumeLink);
+              if (klaviyoResult.success) {
+                order.resumeEmailSent = true;
+                await order.save();
+                console.log(`[Worker] Successfully sent Klaviyo Music_Ready_To_Select event for ${order.email}`);
+              }
+            }
+          }
+        } catch (e) {
+          console.error(`[Worker] Error triggering Klaviyo Music_Ready_To_Select:`, e);
         }
       }
     }

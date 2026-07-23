@@ -16,6 +16,9 @@ export async function GET(request) {
 
   // Basic sanitize for filename
   filename = filename.replace(/[^a-zA-Z0-9-_\. ]/g, "").trim();
+  if (!filename || filename === ".mp3") {
+    filename = "custom-song.mp3";
+  }
 
   try {
     const response = await fetch(url);
@@ -28,6 +31,8 @@ export async function GET(request) {
       headers: {
         "Content-Disposition": `attachment; filename="${filename}"`,
         "Content-Type": response.headers.get("Content-Type") || "audio/mpeg",
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "public, max-age=31536000, immutable",
       },
     });
   } catch (error) {
