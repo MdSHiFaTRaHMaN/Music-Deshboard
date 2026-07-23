@@ -1,167 +1,172 @@
-# Music Dashboard - Next.js Admin Dashboard for Music Analytics
+# 🎵 Music Dashboard & AI Custom Song Builder
 
-Music Dashboard is a modern, feature-rich music analytics and management platform built on **Next.js 16 and Tailwind CSS**. It provides musicians, producers, and music managers with comprehensive tools to track performance metrics, visualize data, manage playlists, and monitor music-related activities.
+**Music Dashboard** is a high-performance, full-stack Next.js platform designed for **AI Music Generation**, **Shopify E-Commerce Integration**, **BullMQ Background Task Processing**, and **Automated Order Fulfillment & Klaviyo Email Delivery**.
 
-Built with the latest web technologies, Music Dashboard offers a professional interface for music industry professionals to make data-driven decisions.
+---
 
-## Overview
+## 📌 Architecture Overview
 
-Music Dashboard is a specialized admin dashboard designed for the music industry, providing essential features and components for building music analytics and management platforms. It's built on:
+```mermaid
+graph TD
+    A[Shopify Storefront / Custom Song Builder] -->|1. Submit Form| B[Next.js API Route: /api/suno/generate-music]
+    B -->|2. Create Order & Push Job| C[(Redis Queue / BullMQ)]
+    B -->|3. Save Pending Order| D[(MongoDB)]
+    C -->|4. Consume Job| E[Background Worker: start-worker.js]
+    E -->|5. Generate AI Audio| F[Suno AI API]
+    E -->|6. Process Audio & Upload| G[AWS S3 Bucket]
+    E -->|7. Update Order & Trigger| H[Klaviyo API Events]
+    H -->|8. Direct Download Links| I[Customer Email Inbox]
+    E -->|9. Fulfill Order| J[Shopify Admin API]
+```
 
-* Next.js 16.x with App Router
-* React 19
-* Tailwind CSS v4
-* ApexCharts for advanced data visualization
-* FullCalendar for event management
-* Responsive design with dark mode support
+---
 
-### Key Features
+## 🛠️ Technology Stack
 
-* 📊 Music analytics and metrics tracking
-* 🎵 Playlist and track management
-* 📈 Interactive charts and visualizations
-* 🎭 Professional dashboard layouts
-* 🌙 Dark mode support
-* 📱 Fully responsive design
-* ⚡ Built with modern React and Next.js patterns
+| Component | Technology Used | Description |
+| :--- | :--- | :--- |
+| **Framework** | Next.js 16 (App Router) | Full-stack SSR, Server Actions, & API Routes |
+| **UI & Styling** | React 19 + Tailwind CSS v4 | Responsive Admin Dashboard & Custom Widget |
+| **Database** | MongoDB + Mongoose ODM | Customer, Order, Song, and System Settings data |
+| **Queue & Worker** | Redis + BullMQ (`ioredis`) | Asynchronous background music processing |
+| **Cloud Storage** | AWS S3 (`@aws-sdk/client-s3`) | MP3 audio files and cover art storage |
+| **Audio Engine** | FFmpeg (`fluent-ffmpeg`) | Audio clipping, watermark mixing, and duration |
+| **AI Generation** | Suno AI API | Custom lyrics and music generation |
+| **Email Marketing**| Klaviyo API | Automated email triggers (`Music_Ready_To_Select`, `Music_Delivered`) |
+| **E-Commerce** | Shopify Admin API & Webhooks | Order synchronization and automatic fulfillment |
 
-## Installation
+---
 
-### Prerequisites
+## 🚀 Getting Started
 
-Before getting started, ensure you have the following installed:
+### 1. Prerequisites
 
-* Node.js 18.x or later (Node.js 20.x or later recommended)
-* npm or yarn package manager
+Make sure you have the following installed on your development system:
+* **Node.js**: `v20.x` or later
+* **npm**: `v10.x` or later
+* **Redis Server**: Local Redis instance (`redis://127.0.0.1:6379`) or Redis Cloud URI
+* **FFmpeg**: Installed and added to system `PATH` (for audio processing)
 
-### Setup Instructions
+---
 
-1. Navigate to the project directory:
+### 2. Environment Setup
+
+Create a `.env.local` file in the root directory and configure the environment variables:
+
+```env
+# ── Server & Database ──
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+MONGODB_URI="mongodb+srv://<username>:<password>@cluster.mongodb.net/MusicDashboard"
+JWT_SECRET="your_super_secret_jwt_key"
+
+# ── Redis & Queue (Required for BullMQ Background Worker) ──
+REDIS_URL="redis://127.0.0.1:6379"
+
+# ── AWS S3 Storage (Required for Song Uploads) ──
+AWS_REGION="us-east-1"
+AWS_ACCESS_KEY_ID="your_aws_access_key"
+AWS_SECRET_ACCESS_KEY="your_aws_secret_key"
+AWS_S3_BUCKET_NAME="your_s3_bucket_name"
+
+# ── Suno AI API ──
+SUNO_API_BASE="https://api.suno.ai"
+SUNO_API_KEY="your_suno_api_key"
+
+# ── Security & Cloudflare Turnstile ──
+TURNSTILE_SECRET_KEY="your_cloudflare_turnstile_secret"
+```
+
+---
+
+### 3. Installation & Running Locally
+
+1. **Clone the repository and install dependencies**:
    ```bash
-   cd Music-Dashboard
-   ```
-
-2. Install dependencies:
-   ```bash
+   git clone https://github.com/MdSHiFaTRaHMaN/Music-Deshboard.git
+   cd Music-Deshboard
    npm install
-   # or
-   yarn install
    ```
-   > Use the `--legacy-peer-deps` flag if you encounter peer-dependency conflicts.
 
-3. Start the development server:
+2. **Start the Web Dashboard**:
    ```bash
    npm run dev
-   # or
-   yarn dev
    ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser to access the dashboard.
+   *Dashboard will be available at [http://localhost:3000](http://localhost:3000)*
 
-### Building for Production
+3. **Start the Background Worker Process** *(in a separate terminal)*:
+   ```bash
+   npm run worker
+   ```
+   *This process listens to the Redis queue and handles music generation, AWS S3 uploads, Klaviyo email triggers, and Shopify fulfillment.*
 
-To create a production build:
+---
 
+## ⚡ Core Feature Flows & Developer Guide
+
+### 1. Custom Song Builder (Shopify Storefront Widget)
+Located in root:
+* `custom-song-builder.liquid`: Shopify Liquid section template.
+* `custom-song-builder.css`: High-specificity, isolated CSS (prevents theme styling conflicts).
+* `custom-song-builder.js`: Vanilla JS controller managing 10-step wizard flow, AI lyrics generation, audio previews, and package selection.
+
+### 2. Direct MP3 Download API (`/api/download`)
+* **Endpoint**: `GET /api/download?url=<ENCODED_URL_OR_S3_KEY>&filename=<FILENAME>`
+* **Features**:
+  * Automatically detects if `url` is an S3 Key (e.g. `music/orderId/file.mp3`) and generates a signed AWS S3 Presigned URL on the fly.
+  * Streams audio with `Content-Disposition: attachment; filename="SongTitle.mp3"` header.
+  * Ensures instant direct browser download when clicked in delivery emails or admin pages.
+
+### 3. Klaviyo Automated Email Flows
+* **`sendKlaviyoMusicReady` (`Music_Ready_To_Select`)**: Triggered when a demo song is ready before checkout (Abandoned Cart Flow). Contains a magic resume link (`?resumeOrder=id`).
+* **`sendKlaviyoMusicDelivery` (`Music_Delivered`)**: Triggered when a paid order's song is fully generated. Contains direct MP3 download links via `/api/download`.
+
+### 4. Shopify Order Synchronization & Fulfillment
+* **Webhook Endpoint**: `POST /api/shopify/webhooks/orders-create`
+  * Captures new Shopify orders and matches line item `Music ID` properties to MongoDB orders.
+* **Auto-Fulfillment**:
+  * Uses `src/lib/shopifyFulfill.js` to mark Shopify order line items as fulfilled automatically once music processing completes.
+
+---
+
+## 🧪 Testing & Verification
+
+Run production build check to ensure clean compilation:
 ```bash
 npm run build
-npm start
-# or
-yarn build
-yarn start
 ```
 
-## Features Overview
-
-Music Dashboard is specifically tailored to automate the creation and delivery of custom AI-generated music based on customer orders.
-
-### Core App Features
-* **AI Music Generation:** Seamlessly integrates with the Suno API to generate custom songs based on customer inputs (genre, occasion, recipient).
-* **Shopify Integration:** Automatically captures new orders via Shopify webhooks and syncs order details to the dashboard.
-* **Automated Order Fulfillment:** Once a song finishes generating, the system automatically marks the Shopify order as fulfilled via the Shopify Admin API.
-* **Klaviyo Email Automation:** Triggers custom Klaviyo events (`Music_Delivered`) to automatically email customers their finished songs and download links.
-* **Admin Control Panel:** A complete UI for admins to view pending orders, track AI generation status, manually fulfill orders, and configure API credentials.
-
-### UI & Dashboard Components
-* **Analytics & Metrics:** Track sales, revenue, and performance indicators using ApexCharts.
-* **Order Management:** Real-time data tables showing order status, generated tracks, and customer details.
-* **Settings Panel:** Secure configuration page to update MongoDB, Shopify, Klaviyo, and Suno API keys.
-* **Authentication:** Secure JWT-based admin login.
-* **Responsive & Dark Mode:** Fully responsive UI with dark mode support built on Tailwind CSS v4.
-
-## Server Structure & Architecture
-
-The application is built on **Next.js 16 (App Router)** and utilizes its powerful API routes to act as a full-stack application.
-
-### Backend Architecture
-* **API Routes (`src/app/api/`)**:
-  * `/api/shopify/webhooks/...`: Listens for Shopify order creation events to ingest new orders.
-  * `/api/music/generate`: Communicates with the Suno AI API to initiate song generation tasks.
-  * `/api/music/check-status`: Background polling endpoint to check if pending songs have finished generating.
-  * `/api/klaviyo/trigger`: Formats data and dispatches custom events to Klaviyo for email delivery.
-  * `/api/shopify/fulfill`: Interacts with the Shopify Admin API to mark orders as complete and update fulfillment locations.
-* **Database (`src/models/`)**: 
-  * Uses **MongoDB** (via Mongoose) to store `Orders` (tracking generation status and Shopify IDs) and `Settings` (storing API keys securely).
-* **Utility Libraries (`src/lib/`)**: 
-  * Reusable modules for Shopify fulfillment (`shopifyFulfill.js`), Klaviyo API calls (`klaviyo.js`), and MongoDB connection management.
-
-## Deployment Process
-
-The application is designed to be easily deployed on **Vercel** or any standard Node.js hosting environment (like Render, Heroku, or an EC2 instance).
-
-### 1. Environment Variables
-Before deploying, ensure you configure the following environment variables in your hosting provider:
-```env
-MONGODB_URI="mongodb+srv://<username>:<password>@cluster.mongodb.net/YourDB"
-JWT_SECRET="your_super_secret_jwt_key"
-```
-*(Note: Other API keys like Shopify, Klaviyo, and Suno are managed dynamically via the Admin Dashboard's Settings page and stored in MongoDB).*
-
-### 2. Deploying to Vercel (Recommended)
-1. Push your code to a GitHub repository.
-2. Go to [Vercel](https://vercel.com/) and create a new project.
-3. Import your GitHub repository.
-4. Add the `MONGODB_URI` and `JWT_SECRET` in the Environment Variables section.
-5. Click **Deploy**.
-
-### 3. Deploying to a Node.js Server (VPS/EC2)
-1. Clone the repository on your server.
-2. Run `npm install` to install dependencies.
-3. Create a `.env.local` file in the root directory and add your environment variables.
-4. Build the application: `npm run build`
-5. Start the production server: `npm start`
-*(It is recommended to use a process manager like **PM2** to keep the app running in the background).*
-
-### 4. Post-Deployment Setup
-1. Log in to the Admin Dashboard using your credentials.
-2. Navigate to the **Settings** page.
-3. Enter your **Shopify Admin API Key**, **Shopify Store URL**, **Klaviyo API Key**, and **Suno API Key**.
-4. Set up your Shopify Webhook to point to `https://your-domain.com/api/shopify/webhooks/orders-create` for the `orders/create` topic.
-
-## Development
-
-### Running ESLint
-To check code quality:
+Run ESLint check:
 ```bash
 npm run lint
 ```
 
-### Project Structure
+---
+
+## 📁 Key File Structure
+
 ```
-Music-Dashboard/
+Music-Deshboard/
+├── custom-song-builder.liquid  # Shopify Liquid Widget
+├── custom-song-builder.css     # Scoped Widget Styles
+├── custom-song-builder.js      # Vanilla JS Widget Controller
+├── start-worker.js             # Entry point for BullMQ Background Worker
 ├── src/
-│   ├── app/              # Next.js App Router (Pages & API routes)
-│   ├── components/       # Reusable React components (UI, Tables, Forms)
-│   ├── lib/              # Utility functions and API wrappers
-│   ├── models/           # Mongoose Database Schemas
-│   └── icons/            # SVG and icon components
-├── public/               # Static assets and images
-├── tailwind.config.js    # Tailwind CSS configuration
-└── next.config.mjs       # Next.js configuration
+│   ├── app/                    # Next.js App Router (Pages & API Routes)
+│   │   ├── (admin)/            # Admin Dashboard Pages (Orders, Customers, Musics)
+│   │   └── api/
+│   │       ├── download/       # Direct Attachment Audio Download API
+│   │       ├── suno/           # Suno AI Generation & Status API Routes
+│   │       └── shopify/        # Shopify Webhooks & Fulfillment APIs
+│   ├── components/             # Reusable UI & Table Components
+│   ├── lib/                    # Core Libraries (S3, Klaviyo, Mongoose, Redis, Security)
+│   ├── models/                 # MongoDB Schemas (Order, Customer, User, Settings)
+│   └── workers/
+│       └── musicWorker.js      # BullMQ Worker logic (Audio processing, S3, Klaviyo)
+└── package.json
 ```
-
-## License
-
-Music Dashboard is released under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 
-**Built with ❤️ for music creators and professionals**
+## 📜 License & Support
+
+This project is proprietary and built specifically for custom song builder e-commerce operations.
